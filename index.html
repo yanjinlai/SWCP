@@ -95,7 +95,6 @@ h1{
   display:flex; align-items:center; gap:8px;
 }
 .tab .idx{color:var(--teal); font-weight:600;}
-.tab br.tab-br-mobile{display:none;}
 .tab:hover{opacity:1;}
 .tab.active{
   background:var(--card);
@@ -317,7 +316,7 @@ td.readonly{background:transparent !important;}
   .tabs{gap:6px; margin-top:16px;}
   .tab{padding:8px 10px; font-size:11px; gap:5px;}
   .tab .idx{display:none;}
-  .tab br.tab-br-mobile{display:block;}
+  .tab{white-space:pre-line;}
 
   #userInfo a{white-space:nowrap;}
 
@@ -2413,7 +2412,7 @@ function progressModalHtml(c){
 /* ============ Tabs ============ */
 const BASE_TABS = [
   {key:"cases", label:"結案總表"},
-  {key:"progressOverview", label:"進度總覽<br class=\"tab-br-mobile\">(執行中/暫停)"},
+  {key:"progressOverview", label:"進度總覽\n(執行中/暫停)"},
   {key:"caseview", label:"各案總覽"},
 ];
 function getTabs(){
