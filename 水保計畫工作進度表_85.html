@@ -1,0 +1,3244 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>水保計畫工作進度表</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+:root{
+  --paper:#EEF1EC;
+  --card:#FBFAF8;
+  --card-line:#DDE3DC;
+  --ink:#1E3A4C;
+  --ink-soft:#5B7078;
+  --line:#C7D0CB;
+  --teal:#3B6E68;
+  --teal-soft:#DCE7E4;
+  --amber:#B4812A;
+  --amber-soft:#F3E7CE;
+  --moss:#556E48;
+  --moss-soft:#E2E9DA;
+  --clay:#A64D28;
+  --clay-soft:#F1DDD1;
+  --deadline-red:#D7263D;
+  --deadline-red-soft:#FBDCE0;
+  --grey:#7C8781;
+  --grey-soft:#E7EAE6;
+  --input-bg:#FFFDF7;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  zoom:1.1;
+  background:var(--paper);
+  background-image:
+    linear-gradient(var(--card-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--card-line) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-attachment: fixed;
+  color:var(--ink);
+  font-family:'Noto Serif TC', 'PingFang TC', 'Microsoft JhengHei', serif;
+  min-height:100vh;
+  padding: 28px 20px 60px;
+}
+
+.wrap{max-width:1180px;margin:0 auto;}
+
+/* ---------- header ---------- */
+.header{margin-bottom:22px;}
+.eyebrow{
+  font-family:'Noto Serif TC', serif;
+  font-size:11px;
+  letter-spacing:0.16em;
+  color:var(--teal);
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+h1{
+  font-family:'Noto Serif TC', serif;
+  font-weight:700;
+  font-size:28px;
+  color:var(--ink);
+  margin:0 0 6px;
+}
+.subtitle{color:var(--ink-soft); font-size:13.5px;}
+.savebar{
+  font-family:'Noto Serif TC', serif;
+  font-size:11px;
+  color:var(--grey);
+  margin-top:10px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.savebar .dot{width:6px;height:6px;border-radius:50%;background:var(--moss);display:inline-block;}
+.savebar.saving .dot{background:var(--amber);}
+
+/* ---------- tabs ---------- */
+.tabs{display:flex; gap:4px; margin-top:24px; align-items:flex-end;}
+.tab{
+  font-family:'Noto Serif TC', serif;
+  font-size:12px;
+  background:#E3E8E2;
+  color:var(--ink-soft);
+  border:1px solid var(--card-line);
+  border-bottom:none;
+  border-radius:8px 8px 0 0;
+  padding:10px 16px 9px;
+  cursor:pointer;
+  opacity:0.8;
+  transform:translateY(4px);
+  transition:all .15s ease;
+  display:flex; align-items:center; gap:8px;
+}
+.tab .idx{color:var(--teal); font-weight:600;}
+.tab:hover{opacity:1;}
+.tab.active{
+  background:var(--card);
+  color:var(--ink);
+  opacity:1;
+  transform:translateY(0);
+  border-color:var(--card-line);
+  font-weight:600;
+  box-shadow:0 -2px 0 var(--amber) inset;
+}
+
+/* ---------- card ---------- */
+.card{
+  background:var(--card);
+  border:1px solid var(--card-line);
+  border-radius:0 8px 8px 8px;
+  padding:22px;
+  box-shadow:0 1px 3px rgba(30,58,76,0.06);
+}
+.card-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; gap:12px; flex-wrap:wrap;}
+.card-title{font-family:'Noto Serif TC', serif; font-weight:700; font-size:17px; color:var(--ink);}
+.card-hint{font-size:12px; color:var(--ink-soft); margin-top:2px;}
+
+.btn{
+  font-family:'Noto Serif TC', serif;
+  font-size:12px;
+  font-weight:700;
+  background:var(--ink);
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  padding:9px 14px;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.btn:hover{background:var(--teal);}
+.btn.ghost{background:transparent; color:var(--clay); border:1px solid var(--clay-soft); font-weight:600;}
+.btn.ghost:hover{background:var(--clay-soft);}
+
+/* ---------- table ---------- */
+.tbl-scroll{overflow-x:auto; border:1px solid var(--card-line); border-radius:6px;}
+table{border-collapse:collapse; width:100%; min-width:760px;}
+thead th{
+  background:var(--ink);
+  color:#fff;
+  font-family:'Noto Serif TC', serif;
+  font-weight:600;
+  font-size:11px;
+  letter-spacing:0.03em;
+  text-align:left;
+  padding:9px 10px;
+  white-space:nowrap;
+  position:sticky; top:0;
+}
+tbody td, tfoot td{
+  border-bottom:1px solid var(--card-line);
+  border-right:1px solid #EFF2ED;
+  padding:5px 6px;
+  vertical-align:middle;
+  background:var(--card);
+  font-size:12px;
+  line-height:1.4;
+}
+tfoot td{background:#F4F6F2;}
+tbody tr:nth-child(even) td{background:#F4F6F2;}
+tbody tr:hover td{background:var(--teal-soft);}
+
+input[type=text], input[type=date], input[type=password], select, textarea{
+  font-family:'Noto Serif TC', serif;
+  font-size:12px;
+  color:var(--ink);
+  background:var(--input-bg);
+  border:1px solid var(--card-line);
+  border-radius:4px;
+  padding:6px 7px;
+  width:100%;
+  min-width:88px;
+}
+textarea{
+  resize:vertical;
+  min-height:54px;
+  line-height:1.45;
+  white-space:normal;
+  word-break:break-word;
+  font-family:inherit;
+}
+input:focus, select:focus, textarea:focus{outline:2px solid var(--amber); outline-offset:0; border-color:var(--amber);}
+td.readonly{background:transparent !important;}
+.computed{
+  font-family:'Noto Serif TC', serif;
+  font-size:11.5px;
+  color:var(--teal);
+}
+.rowdel{
+  background:none; border:none; color:var(--grey); cursor:pointer; font-size:15px; line-height:1;
+  padding:4px 6px; border-radius:4px;
+}
+.rowdel:hover{color:var(--clay); background:var(--clay-soft);}
+
+/* status badges */
+.badge{
+  display:inline-block; font-family:'Noto Serif TC', serif; font-size:10.5px; font-weight:600;
+  padding:3px 8px; border-radius:999px; white-space:nowrap;
+}
+.badge-teal{background:var(--teal-soft); color:var(--teal);}
+.badge-amber{background:var(--amber-soft); color:var(--amber);}
+.badge-moss{background:var(--moss-soft); color:var(--moss);}
+.badge-moss-solid{background:var(--moss); color:#fff;}
+.badge-clay{background:var(--clay-soft); color:var(--clay);}
+.badge-grey{background:var(--grey-soft); color:var(--grey);}
+.line-badge{display:inline-block; background:#06C755; color:#fff; font-weight:700; font-size:10px; border-radius:4px; padding:1px 6px; letter-spacing:0.02em;}
+
+/* progress ruler (signature element) */
+.ruler{display:flex; align-items:center; gap:2px;}
+.ruler .tick{width:9px; height:9px; border-radius:2px; background:var(--grey-soft); border:1px solid var(--card-line); flex:0 0 auto;}
+.ruler .tick.done{background:var(--teal); border-color:var(--teal);}
+.ruler .tick.now{background:var(--amber); border-color:var(--amber);}
+.ruler-label{font-family:'Noto Serif TC', serif; font-size:11px; color:var(--ink-soft); margin-left:6px; white-space:nowrap;}
+
+.empty{
+  padding:30px 10px; text-align:center; color:var(--grey);
+  font-family:'Noto Serif TC', serif; font-size:12px;
+}
+
+.legend{
+  margin-top:16px; padding-top:14px; border-top:1px dashed var(--card-line);
+  font-size:11.5px; color:var(--ink-soft); display:flex; gap:18px; flex-wrap:wrap;
+}
+.legend span.sw{display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:middle;}
+
+/* ---------- 各案總覽 ---------- */
+.cv-picker{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+.cv-picker select{min-width:110px; font-size:13.5px; font-weight:600; padding:8px 10px;}
+.cv-picker-stack{display:flex; flex-direction:column; align-items:stretch; gap:10px; flex:1 1 260px; min-width:0;}
+.cv-picker-stack select{width:100%; font-size:13px; font-weight:600; padding:8px 10px;}
+.cv-search-input{font-family:'Noto Serif TC', serif; font-size:13px; font-weight:600; color:var(--ink); background:var(--input-bg); border:1px solid var(--card-line); border-radius:4px; padding:8px 10px; width:100%;}
+.cv-picker-stack > .btn{align-self:flex-start;}
+.cv-detail-tabs{display:flex; gap:6px; flex-wrap:wrap; margin:16px 0 6px;}
+.cv-detail-tabs .btn{font-size:11.5px; padding:7px 13px;}
+.cv-dropdown{position:relative; width:100%;}
+.cv-dropdown-toggle{
+  font-family:'Noto Serif TC', serif; font-size:13px; font-weight:600; color:var(--ink);
+  background:var(--input-bg); border:1px solid var(--card-line); border-radius:4px;
+  padding:8px 10px; width:100%; text-align:left; cursor:pointer;
+  display:flex; justify-content:space-between; align-items:center; gap:8px;
+}
+.cv-dropdown-toggle:hover{border-color:var(--teal);}
+.cv-dropdown-panel{
+  position:absolute; top:calc(100% + 10px); left:0; right:0; z-index:30;
+  background:var(--card); border:1px solid var(--card-line); border-radius:6px;
+  max-height:336px; overflow-y:auto; box-shadow:0 4px 14px rgba(30,58,76,0.18);
+}
+.cv-dropdown-item{padding:8px 10px; font-size:12.5px; cursor:pointer; border-bottom:1px solid var(--card-line); white-space:normal;}
+.cv-dropdown-item:last-child{border-bottom:none;}
+.cv-dropdown-item:hover{background:var(--teal-soft);}
+.cv-dropdown-item.selected{background:var(--amber-soft); font-weight:700;}
+.cv-dropdown-empty{padding:10px; font-size:12px; color:var(--grey);}
+.cv-summary{margin-top:14px;}
+.cv-section{margin-top:22px; padding-top:18px; border-top:1px solid var(--card-line);}
+.cv-section-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
+.cv-section-title{font-family:'Noto Serif TC', serif; font-size:12px; letter-spacing:0.05em; color:var(--teal); text-transform:uppercase; font-weight:600;}
+.cv-formgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:10px 12px;}
+.cv-field label{display:block; font-size:11px; color:var(--ink-soft); margin-bottom:4px; font-family:'Noto Serif TC', serif;}
+.cv-field.wide{grid-column:1 / -1;}
+
+/* ---------- progress stepper ---------- */
+.stepper{display:flex; align-items:flex-start; gap:2px; padding:6px 2px 2px; overflow-x:auto;}
+.step{display:flex; flex-direction:column; align-items:center; flex:1; min-width:84px; position:relative;}
+.step-line{position:absolute; top:13px; left:-50%; width:100%; height:2px; background:var(--card-line); z-index:0;}
+.step:first-child .step-line{display:none;}
+.step.done .step-line{background:var(--teal);}
+.step-dot{width:26px; height:26px; border-radius:50%; background:var(--card); border:2px solid var(--card-line); display:flex; align-items:center; justify-content:center; font-family:'Noto Serif TC', serif; font-size:11px; font-weight:600; color:var(--grey); z-index:1;}
+.step.done .step-dot{background:var(--teal); border-color:var(--teal); color:#fff;}
+.step.now .step-dot{background:var(--amber); border-color:var(--amber); color:#fff;}
+.step.ext-step .step-dot{background:var(--amber-soft); border-color:var(--amber); color:var(--amber); font-weight:700;}
+.step.ext-step.now .step-dot{background:var(--amber); border-color:var(--amber); color:#fff;}
+.step.ext-step.done .step-line{background:var(--amber);}
+.step-label{font-size:11px; color:var(--ink-soft); margin-top:6px; text-align:center; font-family:'Noto Serif TC', serif;}
+.step-date{font-size:10.5px; color:var(--grey); margin-top:2px; text-align:center;}
+.step-deadline{font-size:10px; color:var(--ink-soft); margin-top:3px; text-align:center; font-family:'Noto Serif TC', serif;}
+.step-ext{font-size:10px; color:var(--amber); font-weight:700; margin-top:3px; text-align:center; background:var(--amber-soft); border-radius:4px; padding:1px 5px;}
+
+/* PDF匯出專用進度條（純flexbox，不用position:absolute，避免html2canvas擷取時連接線跑位） */
+.stepper-pdf{width:100%;}
+.stepper-pdf-dots-row{display:flex; align-items:center;}
+.stepper-pdf-unit{display:flex; align-items:center; flex:1; min-width:0;}
+.stepper-pdf-connector{flex:1; height:2px; background:var(--card-line);}
+.stepper-pdf-dot{width:26px; height:26px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-family:'Noto Serif TC', serif; font-size:11px; font-weight:600; color:var(--grey); background:var(--card); border:2px solid var(--card-line);}
+.stepper-pdf-labels-row{display:flex; margin-top:6px;}
+.stepper-pdf-label-col{flex:1; min-width:0; text-align:center; padding:0 3px;}
+.stepper-pdf-label{font-size:11px; color:var(--ink-soft); text-align:center; font-family:'Noto Serif TC', serif;}
+.stepper-pdf-sub{font-size:10.5px; color:var(--grey); margin-top:2px; text-align:center; font-family:'Noto Serif TC', serif;}
+
+/* ---------- modal ---------- */
+.modal-overlay{position:fixed; inset:0; background:rgba(30,58,76,0.5); display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px;}
+.modal-box{background:var(--card); border-radius:10px; padding:22px; width:100%; max-width:480px; max-height:88vh; overflow-y:auto; box-shadow:0 12px 40px rgba(0,0,0,0.28);}
+.modal-title{font-family:'Noto Serif TC', serif; font-weight:700; font-size:16px; color:var(--ink); margin-bottom:14px;}
+.modal-row{margin-bottom:12px;}
+.modal-row label{display:block; font-size:11.5px; color:var(--ink-soft); margin-bottom:4px; font-family:'Noto Serif TC', serif;}
+.modal-ext-row{display:flex; align-items:center; gap:8px; margin-top:6px; font-size:12px; color:var(--ink-soft);}
+.modal-ext-row input[type=checkbox]{width:auto;}
+.modal-actions{display:flex; justify-content:flex-end; gap:8px; margin-top:18px; padding-top:14px; border-top:1px solid var(--card-line);}
+
+/* ---------- 手機版 RWD ---------- */
+@media (max-width:640px){
+  body{
+    zoom:1;
+    padding:16px 12px 48px;
+    background-size:20px 20px;
+  }
+  .wrap{max-width:100%;}
+
+  .header{margin-bottom:16px;}
+  .eyebrow{font-size:10px;}
+  h1{font-size:20px;}
+  .subtitle{font-size:12px;}
+  .savebar{font-size:10px;}
+
+  .tabs{gap:6px; margin-top:16px;}
+  .tab{padding:8px 10px; font-size:11px; gap:5px;}
+  .tab .idx{display:none;}
+
+  .card{padding:14px; border-radius:0 6px 6px 6px;}
+  .card-top{gap:8px; margin-bottom:12px;}
+  .card-title{font-size:15px;}
+  .card-hint{font-size:11px;}
+
+  .btn{padding:10px 14px; font-size:12px;}
+
+  input[type=text], input[type=date], input[type=password], select, textarea{
+    font-size:16px; /* 避免iOS Safari輸入框focus時自動放大畫面 */
+    padding:8px 9px;
+  }
+  input[type=checkbox]{width:16px; height:16px;}
+  .cv-search-input, .cv-picker-stack select, .cv-dropdown-toggle{font-size:15px;}
+
+  .tbl-scroll{-webkit-overflow-scrolling:touch;}
+  table{min-width:640px;}
+  thead th{font-size:10px; padding:8px 8px;}
+  tbody td, tfoot td{font-size:11px; padding:5px 5px;}
+
+  .cv-formgrid{grid-template-columns:1fr; gap:10px;}
+  .cv-detail-tabs{gap:5px;}
+  .cv-detail-tabs .btn{font-size:11px; padding:6px 10px;}
+
+  .stepper{gap:0; padding:6px 2px 2px;}
+  .step{min-width:72px;}
+  .step-label{font-size:10px;}
+  .step-date, .step-deadline{font-size:9.5px;}
+
+  .modal-overlay{padding:12px;}
+  .modal-box{padding:16px; max-height:92vh;}
+  .modal-title{font-size:15px; margin-bottom:10px;}
+  .modal-actions{gap:6px; margin-top:14px; padding-top:10px;}
+  .modal-actions .btn{flex:1; text-align:center;}
+
+  .legend{gap:10px 14px; font-size:10.5px;}
+}
+
+@media (max-width:400px){
+  h1{font-size:18px;}
+  .tab{font-size:10px; padding:7px 8px;}
+  .card{padding:11px;}
+  table{min-width:560px;}
+}
+
+/* ---------- PDF匯出：擷取畫面時隱藏按鈕/互動控制項 ---------- */
+body.pdf-exporting button{display:none !important;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="eyebrow">水土保持計畫・案件管理</div>
+    <h1>工作進度表</h1>
+    <div class="subtitle">結案總表・各案總覽（基本資料・工作進度・聯絡窗口） — 資料同步儲存於雲端</div>
+    <div class="savebar" id="savebar"><span class="dot"></span><span id="saveText">載入中…</span><span id="userInfo" style="margin-left:12px;"></span><button class="btn ghost" id="undoBtn" style="margin-left:12px; padding:3px 10px; font-size:11px; display:none;">↩ 返回上一步</button></div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <div class="card" id="cardArea"></div>
+
+</div>
+<div id="deadlineNoticeArea"></div>
+<div id="credModalArea"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+/* ============ Firebase 初始化 ============ */
+const firebaseConfig = {
+  apiKey: "AIzaSyAM3B_5Ot2M_X5eptAYeGsTJg4Tv2vYTXU",
+  authDomain: "water-soil-tracker.firebaseapp.com",
+  projectId: "water-soil-tracker",
+  storageBucket: "water-soil-tracker.firebasestorage.app",
+  messagingSenderId: "1052261254358",
+  appId: "1:1052261254358:web:eac43a49e40338f678f577",
+  databaseURL: "https://water-soil-tracker-default-rtdb.asia-southeast1.firebasedatabase.app"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+/* ============ 常數 ============ */
+const STAGES = ["掛件","第1次審查","第2次審查","第3次審查","檢視本","定稿本"];
+const CASE_STATUS = ["進行中","已結案","暫停"];
+const CASE_TYPES = ["水土保持計畫","加強山坡地雜項執照審查報告書","地下水補注地質敏感區"];
+const DEFAULT_CATEGORY_OPTIONS = ["工廠","住宅","殯葬設施","農業整坡","寺廟","休閒農場"];
+const DEFAULT_MATERIALS_CHECKLIST = [
+  "水土保持義務人相關資料",
+  "土地使用同意書（若土地所有權人非屬水土保持義務人）",
+  "目的事業計畫",
+  "土地使用計畫內容概要說明（如土地使用強度表、建蔽率、容積率等等）、建築平面、立面、剖面圖",
+  "現況測量圖",
+  "地質鑽探報告書"
+];
+const CONTACT_TYPES = ["業主","建築師","鑽探公司","審查單位","其他"];
+const CONTACT_TYPE_ORDER = ["業主","建築師","鑽探公司","審查單位","其他"];
+// 常見審查單位清單（依台灣地理位置由北到南排列：臺北市→新北市→臺中市→高雄市）
+const DEFAULT_REVIEW_AGENCIES = [
+  {name:"社團法人中華水土保持學會", contactName:"謝穎婷", phone:"(02)23678532", lineId:"", email:"cswcs@ms63.hinet.net", address:"100039臺北市中正區廈門街113巷8號2樓"},
+  {name:"社團法人中華民國大地工程技師公會", contactName:"陳宥妤", phone:"(02)27820022#11", lineId:"", email:"pgea@pgea.org.tw", address:"115020臺北市南港區西新里成功路1段32號4樓之8"},
+  {name:"社團法人臺灣省土木技師公會", contactName:"陳玉真", phone:"(02)89613968#125", lineId:"", email:"jen@twce.org.tw", address:"220新北市板橋區三民路二段37號12樓A3"},
+  {name:"社團法人臺灣省水土保持技師公會", contactName:"曾怡樺", phone:"(02)82581918", lineId:"", email:"twsw6818@ms21.hinet.net", address:"220441新北市板橋區雙十路2段143號4樓"},
+  {name:"社團法人台灣省水利技師公會", contactName:"蕭惠玲", phone:"(02)26980980#22", lineId:"", email:"hydraul.tw@msa.hinet.net", address:"22101新北市汐止區新台五路一段81號10樓之4"},
+  {name:"社團法人臺中市土木技師公會", contactName:"黃小姐", phone:"(04)22378968#14", lineId:"", email:"", address:"臺中市北區崇德路一段629號B棟5樓之1"},
+  {name:"社團法人臺中市水土保持技師公會", contactName:"陳惠玲", phone:"(04)23283381", lineId:"", email:"taichung@tcswcpea.org.tw", address:"403臺中市西區臺灣大道二段307號12樓之1"},
+  {name:"社團法人臺灣水土保育治理協會", contactName:"魏于涵", phone:"(04)23897556", lineId:"", email:"", address:"408臺中市南屯區文心南二路492號"},
+  {name:"國立中興大學", contactName:"", phone:"", lineId:"", email:"", address:"40227臺中市南區興大路145號"},
+  {name:"高雄市土木技師公會", contactName:"顏嫚萱/詹美華", phone:"(07)5520279", lineId:"", email:"kpcea@ms27.hinet.net", address:"804高雄市鼓山區中華一路203號3樓"},
+  {name:"社團法人高雄市水利技師公會", contactName:"張馨予", phone:"(07)8157321", lineId:"", email:"khea.water@msa.hinet.net", address:"806620高雄市前鎮區擴建路1-22號9樓"},
+];
+const LOCAL_KEY = "wst_session_v1"; // 記住此瀏覽器上次登入的代號/文件ID
+
+const uid = () => Math.random().toString(36).slice(2,10);
+
+/* ============ 初始狀態(第一次開啟時使用；已預先放入承辦人「彥瑾」的58筆已結案歷史資料，排除無核准日期/未歸檔者) ============ */
+/* 歷史結案資料（承辦人：彥瑾）——初次開啟時已直接帶入結案總表 */
+const HISTORICAL_YENCHIN_CASES = [
+  {name:"臺中市清水區吳厝北段333地號等1筆土地「全園木業有限公司」特定工廠登記申請案水土保持計畫", client:"全園木業有限公司", rep:"黃全義", actualClose:"2026-04-02", docNo:"中市水保管字第1150033867號", caseType:"水土保持計畫", note:"類型:工廠；紙本編號:11508；製作定稿:115.03.25；歷史資料匯入"},
+  {name:"臺中市太平區聖和段431地號等8筆土地(農牧用地丙種建築用地林業用地昱鋒實業股份有限公司二廠特定工廠登記申請案水土保持計畫(原計畫失效重提(定稿本))", client:"昱鋒實業股份有限公司", rep:"", actualClose:"2026-03-09", docNo:"中市水保管字第1150023796號", caseType:"水土保持計畫", note:"類型:工廠；紙本編號:11505；製作定稿:115.02.26；歷史資料匯入"},
+  {name:"加強山坡地雜項執照審查報告書(苗栗縣三義鄉水美段420-93、420-108、420-109地號等三筆土地「三義基督長老教會-申倫禱告殿」)", client:"邱志仁", rep:"", actualClose:"2026-01-21", docNo:"府商建字第1150014106號", caseType:"加強山坡地雜項執照審查報告書", note:"類型:建築物；紙本編號:11504；製作定稿:115.01；歷史資料匯入"},
+  {name:"雲林縣斗六市咬狗段457-2地號等5筆土地鄒永豐農地開發水土保持計畫", client:"鄒永豐", rep:"", actualClose:"2025-12-22", docNo:"府水土二字第1143761941號", caseType:"水土保持計畫", note:"類型:農業整坡；紙本編號:11427；製作定稿:114.12.8；歷史資料匯入"},
+  {name:"苗栗縣三義鄉水美段420-93、420-108、420-109地號等三筆土地「三義基督長老教會-申倫禱告殿」水土保持計畫(定稿本)", client:"邱志仁", rep:"", actualClose:"2025-05-01", docNo:"府水保字第1140091878號", caseType:"水土保持計畫", note:"類型:建築物；紙本編號:11407；製作定稿:114.4.14；歷史資料匯入"},
+  {name:"彰化縣社頭鄉月眉段545地號等1筆土地申請變更編定為社會福利設施用地水土保持計畫(定稿本)", client:"彰化縣社頭鄉公所", rep:"", actualClose:"2025-03-11", docNo:"府水保字第1140090779號", caseType:"水土保持計畫", note:"類型:建築物；紙本編號:11405；製作定稿:114.2.14；歷史資料匯入"},
+  {name:"臺南市關廟區深坑子段5-12、7、8、1066、1066-1、1066-2、1066-5及1067地號等8筆土地「金讚企業社」毗鄰擴廠水土保持計畫(定稿本)", client:"金讚企業社", rep:"戴麗雲", actualClose:"2025-01-09", docNo:"南市水保字第1140064732號", caseType:"水土保持計畫", note:"類型:工廠；紙本編號:11331；製作定稿:113.12.27；歷史資料匯入"},
+  {name:"南投縣草屯鎮南坪段927地號等3筆土地毛毛寵物生命紀念園區新建工程水土保持計畫", client:"毛毛有限公司", rep:"", actualClose:"2024-09-23", docNo:"府農管字第1130235046號", caseType:"水土保持計畫", note:"類型:殯葬設施；紙本編號:11322；製作定稿:113.8.22；歷史資料匯入"},
+  {name:"南投縣魚池鄉內池段1367地號等13筆土地店鋪集合住宅新建工程水土保持計畫(第一次變更)", client:"鴻譽建設股份有限公司", rep:"", actualClose:"2024-08-28", docNo:"府農管字第1130201687號", caseType:"水土保持計畫", note:"類型:住宅；紙本編號:11321；製作定稿:113.8.9；歷史資料匯入"},
+  {name:"「成功嶺北營區新建統包工程」水土保持計畫(含基地地質調查及地質安全評估)(第一次變更)", client:"陸軍步兵第三0二旅", rep:"", actualClose:"2024-04-19", docNo:"農授農保字第1132628244號", caseType:"水土保持計畫", note:"類型:軍方；紙本編號:11312；製作定稿:113.4.10；歷史資料匯入"},
+  {name:"「成功嶺北營區新建統包工程」水土保持計畫(含基地地質調查及地質安全評估)(第一次變更)", client:"陸軍步兵第三0二旅", rep:"", actualClose:"2024-04-19", docNo:"農授農保字第1132628244號", caseType:"地下水補注地質敏感區", note:"類型:軍方；製作定稿:113.4.10；歷史資料匯入"},
+  {name:"美時化學製藥股份有限公司廠區A1棟貨梯增建工程基地地質調查及地質安全評估報告(地下水補注地質敏感區)", client:"美時化學製藥股份份有限公司", rep:"", actualClose:"2024-02-16", docNo:"(112)中土結發字第710-04號", caseType:"地下水補注地質敏感區", note:"類型:工廠；製作定稿:113.2.17；歷史資料匯入"},
+  {name:"南投縣草屯鎮平東段195等10筆地號毓繡藝術博物館水土保持計畫(第二次變更)", client:"財團法人毓繡文化基金會", rep:"", actualClose:"2024-03-28", docNo:"府農管字第1130051202號", caseType:"水土保持計畫", note:"類型:建築物；紙本編號:11304；製作定稿:113.2.17；歷史資料匯入"},
+  {name:"臺中市大肚區福和北段37、38、38-1及39地號等4筆土地飛羚工廠新建工程水土保持計畫", client:"飛羚電機工程股份有限公司", rep:"張金好", actualClose:"2024-01-25", docNo:"中市水保管字第1130007599號", caseType:"水土保持計畫", note:"類型:工廠；紙本編號:11303；製作定稿:113.1.16；歷史資料匯入"},
+  {name:"南投縣南投市三塊厝段269-8地號等1筆土地納骨塔新建工程水土保持計畫", client:"華嚴生命事業有限公司", rep:"張經魁", actualClose:"2024-02-23", docNo:"府農管字第1130039476號", caseType:"水土保持計畫", note:"類型:殯葬設施；紙本編號:11301；製作定稿:113.1.12；歷史資料匯入"},
+  {name:"臺中市沙鹿區平等段397、397-1、397-2、397-3、397-4地號等5筆土地住宅新建工程水土保持計畫", client:"君睿建設股份有限公司", rep:"", actualClose:"2023-08-15", docNo:"中市水保管字第1120069996號", caseType:"水土保持計畫", note:"類型:住宅；紙本編號:11223；製作定稿:112.8.7；歷史資料匯入"},
+  {name:"南投縣中寮鄉清水段禪修中心新建工程水土保持計畫(第二次變更)", client:"羅任坤", rep:"", actualClose:"2023-08-01", docNo:"府農管字第1120182910號", caseType:"水土保持計畫", note:"類型:寺廟；紙本編號:11219；製作定稿:112.07.11；歷史資料匯入"},
+  {name:"南投縣南投市茄苳腳段427-70地號等4筆土地住宅新建工程水土保持計畫(第一次變更)", client:"澄豐建設有限公司", rep:"", actualClose:"2023-06-17", docNo:"府農管字第1120146052號", caseType:"水土保持計畫", note:"類型:住宅；紙本編號:11212；製作定稿:112.05.25；歷史資料匯入"},
+  {name:"南投縣南投市三塊厝段220-1地號等22筆土地勤虹建設住宅暨私設通路水土保持計畫(第一次變更)", client:"勤虹建設股份有限公司", rep:"", actualClose:"2023-05-10", docNo:"府農管字第1120112085號", caseType:"水土保持計畫", note:"類型:住宅；紙本編號:11207；製作定稿:112.03.31；歷史資料匯入"},
+  {name:"加強山坡地雜項執照審查報告書(南投縣魚池鄉司馬按段118-21地號等55筆土地九族文化村部落遷移工程)", client:"九族文化村股份有限公司", rep:"", actualClose:"2022-12-15", docNo:"(111)中土水發字第022-07號", caseType:"加強山坡地雜項執照審查報告書", note:"類型:建築物；紙本編號:11130；製作定稿:111.12；歷史資料匯入"},
+  {name:"「成功嶺北營區新建統包工程」水土保持計畫", client:"陸軍步兵第三0二旅", rep:"", actualClose:"2022-12-15", docNo:"農授水保字第1111836091號", caseType:"水土保持計畫", note:"類型:軍方；紙本編號:11129；製作定稿:111.12.07；歷史資料匯入"},
+  {name:"南投縣魚池鄉司馬按段118-42地號等3筆土地九族文化村部落遷移工程水土保持計畫", client:"九族文化村股份有限公司", rep:"", actualClose:"2022-11-10", docNo:"府農管字第1110256957號", caseType:"水土保持計畫", note:"類型:建築物；紙本編號:11123；製作定稿:111.10.24；歷史資料匯入"},
+  {name:"南投縣名間鄉小崎段523-55地號等10筆土地集合住宅新建工程水土保持計畫(第一次變更)", client:"卡登建設事業股份有限公司", rep:"", actualClose:"2022-11-02", docNo:"府農管字第1110249275號", caseType:"水土保持計畫", note:"類型:住宅；紙本編號:11122；製作定稿:111.10.12；歷史資料匯入"},
+  {name:"南投縣中寮鄉清水段禪修中心新建工程水土保持計畫(第一次變更)", client:"羅任坤", rep:"", actualClose:"2022-10-07", docNo:"府農管字第1110235876號", caseType:"水土保持計畫", note:"類型:寺廟；紙本編號:11120；製作定稿:111.09.28；歷史資料匯入"},
+  {name:"南投縣南投市茄苳腳段427-70地號等5筆土地住宅新建工程水土保持計畫", client:"澄豐建設有限公司", rep:"洪龍全", actualClose:"2022-04-28", docNo:"府農管字第1110098888號", caseType:"水土保持計畫", note:"類型:住宅；紙本編號:11108；製作定稿:111.04.12；歷史資料匯入"},
+  {name:"南投縣南投市茄苳腳段442地號等27筆土地住宅新建工程水土保持計畫", client:"國堂建設股份有限公司", rep:"吳愛香", actualClose:"2022-02-17", docNo:"府農管字第1110039310號", caseType:"水土保持計畫", note:"類型:住宅；紙本編號:11104；製作定稿:111.02.08；歷史資料匯入"},
+  {name:"南投縣埔里鎮水頭段1038-5地號等1筆土地雞舍新建工程水土保持計畫(第一次變更)", client:"王麗秋", rep:"", actualClose:"2021-11-28", docNo:"府農管字第1100276483號", caseType:"水土保持計畫", note:"類型:雞舍；紙本編號:11032；製作定稿:110.11.15；歷史資料匯入"},
+  {name:"南投縣魚池鄉內池段1367地號等13筆土地店鋪集合住宅新建工程水土保持計畫", client:"鴻譽建設股份有限公司", rep:"李紅玉", actualClose:"2021-11-01", docNo:"府農管字第1100252722號", caseType:"水土保持計畫", note:"類型:住宅；紙本編號:11029；製作定稿:110.10.20；歷史資料匯入"},
+  {name:"臺中市西屯區國安段493地號等55筆土地東海大學二期補照D4韻律與桌球教室(原休閒中心)", client:"財團法人東海大學", rep:"吳清邁董事會董事長", actualClose:"2021-07-08", docNo:"中市都建字第1100127717號", caseType:"加強山坡地雜項執照審查報告書", note:"類型:學校；紙本編號:11023；製作定稿:110.07；歷史資料匯入"},
+  {name:"臺中市沙鹿區公館南段807-1地號等33筆土地住宅新建工程水土保持計畫", client:"三都建設股份有限公司", rep:"羅銘順", actualClose:"2021-06-28", docNo:"中市水保管字第1100052498號", caseType:"水土保持計畫", note:"類型:住宅；紙本編號:11021；製作定稿:110.06.23；歷史資料匯入"},
+  {name:"南投縣信義鄉沙里仙段357地號等4筆土地(部分使用)溫室新建工程水土保持計畫", client:"吳財發", rep:"", actualClose:"2021-06-18", docNo:"府農管字第1100143179號", caseType:"水土保持計畫", note:"類型:溫室；紙本編號:11019；製作定稿:110.06.08；歷史資料匯入"},
+  {name:"南投縣草屯鎮新南埔段612地號等1筆土地「龍佛禪院」興辦事業計畫水土保持計畫", client:"龍佛禪院籌備處", rep:"祁進居", actualClose:"2021-03-25", docNo:"府農管字第1100073294號", caseType:"水土保持計畫", note:"類型:寺廟；紙本編號:11009；製作定稿:110.03.17；歷史資料匯入"},
+  {name:"南投縣名間鄉小崎段523-55地號等10筆土地集合住宅新建工程水土保持計畫", client:"卡登建設事業股份有限公司", rep:"", actualClose:"2020-12-14", docNo:"府農管字第10902844472號", caseType:"水土保持計畫", note:"類型:住宅；紙本編號:10928；製作定稿:109.11.26；歷史資料匯入"},
+  {name:"南投縣名間鄉小崎段523-55地號等10筆土地基地地質調查及地質安全評估結果(地下水補注地質敏感區)", client:"卡登建設事業股份有限公司", rep:"", actualClose:"2020-11-23", docNo:"中市水公字第1091123101號", caseType:"地下水補注地質敏感區", note:"類型:住宅；紙本編號:10926；製作定稿:109.11.19；歷史資料匯入"},
+  {name:"南投縣草屯鎮平東段195等10筆地號毓繡藝術博物館水土保持計畫(第一次變更)", client:"財團法人毓繡文化基金會", rep:"", actualClose:"2020-11-02", docNo:"府農管字第1090254699號", caseType:"水土保持計畫", note:"類型:建築物；紙本編號:10924；製作定稿:109.10.16；歷史資料匯入"},
+  {name:"臺中市石岡區仙塘坪段284-5地號等2筆土地中北塗料企業股份有限公司廠房增建工程水土保持計畫", client:"中北塗料企業股份有限公司", rep:"", actualClose:"2020-05-08", docNo:"中市水保管字第1090040299號", caseType:"水土保持計畫", note:"類型:工廠；紙本編號:10910；製作定稿:109.04.29；歷史資料匯入"},
+  {name:"南投縣鹿谷鄉中湖段218地號等2筆土地寶煌建設庭園別墅私設通路水計", client:"寶煌建設股份有限公司", rep:"", actualClose:"2020-03-23", docNo:"府農管字第1090072467號", caseType:"水土保持計畫", note:"類型:道路；紙本編號:10904；製作定稿:109.03.04；歷史資料匯入"},
+  {name:"臺中市后里區月眉段月眉小段128-11等3筆土地「金亮億建設有限公司」住宅新建工程水土保持計畫", client:"金亮億建設有限公司", rep:"", actualClose:"2020-03-09", docNo:"中市水保管字第1090016613號", caseType:"水土保持計畫", note:"類型:住宅；紙本編號:10903；製作定稿:109.02.25；歷史資料匯入"},
+  {name:"南投縣南投市光興段營北小段21地號等1筆土地基地地質調查及地質安全評估結果(地下水補注地質敏感區)", client:"蕭萱、曾怡萍、張雅萍、陳文置", rep:"", actualClose:"2019-12-09", docNo:"中市水公字第1081209121號", caseType:"地下水補注地質敏感區", note:"類型:建築物；紙本編號:10810；製作定稿:108.12.06；歷史資料匯入"},
+  {name:"南投縣名間鄉小崎段523-55地號等1筆土地「木青木建設有限公司」住宅新建工程水土保持計畫", client:"木青木建設有限公司", rep:"", actualClose:"2019-10-21", docNo:"府農管字第1080239409號", caseType:"水土保持計畫", note:"類型:住宅；製作定稿:108.09.30；歷史資料匯入"},
+  {name:"南投縣埔里鎮水頭段1038-5地號等1筆土地雞舍新建工程水土保持計畫", client:"王麗秋", rep:"", actualClose:"2019-10-15", docNo:"府農管字第1080234350號", caseType:"水土保持計畫", note:"類型:雞舍；紙本編號:10817；製作定稿:108.09.27；歷史資料匯入"},
+  {name:"南投縣南投市永興段733地號等1筆土地申請廠房新建工程水土保持計畫(原計畫失效與重提後)第一次變更設計", client:"菓風食品實業有限公司", rep:"", actualClose:"2019-09-26", docNo:"府農管字第1080220098號", caseType:"水土保持計畫", note:"類型:工廠；紙本編號:10814；製作定稿:108.08.30；歷史資料匯入"},
+  {name:"南投市大崗段401-2,401-3地號等2筆土地南崗順德廠辦新建工程水計", client:"順德工業股份有限公司", rep:"", actualClose:"2019-08-08", docNo:"府農管字第1080182138號", caseType:"水土保持計畫", note:"類型:工廠；紙本編號:10809；製作定稿:108.07.12；歷史資料匯入"},
+  {name:"臺中市西屯區國安段550地號等1筆土地東海大學二期補照D4韻律與桌球教室(原休閒中心)水土保持計畫", client:"財團法人東海大學", rep:"", actualClose:"2019-05-20", docNo:"中市水公字第1080520002號", caseType:"水土保持計畫", note:"類型:建築物；紙本編號:10807；製作定稿:108.05.26；歷史資料匯入"},
+  {name:"臺中市太平區社腳小段143-4地號等2筆土地「銳泰精密工具股份有限公司二廠」臨時工廠登記申請案水土保持計畫第一次變更", client:"銳泰", rep:"", actualClose:"2018-12-18", docNo:"中市水坡字第1070097757號", caseType:"水土保持計畫", note:"類型:工廠；紙本編號:10724；製作定稿:107.12.07；歷史資料匯入"},
+  {name:"南投縣南投市永興段733地號等1筆土地申請廠房新建工程水土保持計畫(原計畫失效與重提)", client:"菓風食品實業有限公司", rep:"", actualClose:"2018-11-12", docNo:"府農管字第1070255967號", caseType:"水土保持計畫", note:"類型:工廠；紙本編號:10722；製作定稿:107.10.29；歷史資料匯入"},
+  {name:"臺中市沙鹿區英才段1132地號等1筆土地楊桂薰等三人店鋪住宅新建工程水土保持計畫", client:"楊桂薰、林柏丞、林宥辰", rep:"", actualClose:"2018-10-23", docNo:"中市水坡字第1070082058號", caseType:"水土保持計畫", note:"類型:住宅；紙本編號:10719；製作定稿:107.10.08；歷史資料匯入"},
+  {name:"台中市北屯區大榮段455地號裕山順水休閒農場水計", client:"羅裕順", rep:"", actualClose:"2018-08-10", docNo:"中市水坡字第1070061221號", caseType:"水土保持計畫", note:"類型:休閒農場；紙本編號:10714；製作定稿:107.07.30；歷史資料匯入"},
+  {name:"臺南市關廟區深坑子段293-5(部分使用)、997、1007-2、1007-3、1008地號等五筆土地捷泰機械有限公司擴廠新建工程水土保持計畫", client:"捷泰機械有限公司", rep:"", actualClose:"2018-02-26", docNo:"府水保字第1070233563號", caseType:"水土保持計畫", note:"類型:工廠；紙本編號:10703；製作定稿:107.02.06；歷史資料匯入"},
+  {name:"南投縣南投市建興段163-2、163-4地號等2筆土地達怡廠辦新建工程水土保持計畫", client:"達怡實業股份有限公司", rep:"", actualClose:"2018-01-15", docNo:"府農管字第1070017559號", caseType:"水土保持計畫", note:"類型:工廠；紙本編號:10631；製作定稿:106.12.16；歷史資料匯入"},
+  {name:"鴻偉醫療器材股份有限公司南崗工業區六廠新建工程水土保持計畫第二次變更", client:"傳順工業股份有限公司", rep:"", actualClose:"2017-11-28", docNo:"府農管字第1060250910號", caseType:"水土保持計畫", note:"類型:工廠；紙本編號:10628；製作定稿:106.11.13；歷史資料匯入"},
+  {name:"台中市龍井區遊園北段436地號鐙陽交通加強山坡地雜項執照審查報告書", client:"鐙陽交通有限公司", rep:"", actualClose:"2017-12-01", docNo:"中市都建字第1060209428號", caseType:"加強山坡地雜項執照審查報告書", note:"類型:建築物；紙本編號:10626；製作定稿:106.11；歷史資料匯入"},
+  {name:"台中市新社區水底寮段上水底寮小段2907地號等兩筆土地「薰衣草休閒農場」水土保持計畫", client:"王正義", rep:"", actualClose:"2017-03-15", docNo:"中市水坡字第1060017544號", caseType:"水土保持計畫", note:"類型:休閒農場；紙本編號:10608；製作定稿:106.03.08；歷史資料匯入"},
+  {name:"臺中市太平區大興段337地號等2筆土地「銳泰精密工具股份有限公司二廠」臨時工廠登記申請案水土保持計畫", client:"銳泰精密工具股份有限公司", rep:"", actualClose:"2016-12-19", docNo:"中市水坡字第1050093746號", caseType:"水土保持計畫", note:"類型:臨時工廠登記；紙本編號:10528；製作定稿:105.12.07；歷史資料匯入"},
+  {name:"台中市新社區水底寮段水底寮小段197-4地號等4筆土地富禾居休閒農場容許使用水土保持計畫", client:"林李玉梅", rep:"", actualClose:"2016-10-28", docNo:"中市水坡字第1050079365號", caseType:"水土保持計畫", note:"類型:休閒農場；紙本編號:10524；製作定稿:105.10.19；歷史資料匯入"},
+  {name:"南投縣國姓鄉北港溪段33地號等6筆土地秋山國姓休閒農場水計", client:"劉彥伶", rep:"", actualClose:"2016-08-11", docNo:"府農管字第1050169412號", caseType:"水土保持計畫", note:"類型:休閒農場；紙本編號:10515；製作定稿:105.07.18；歷史資料匯入"},
+  {name:"鴻偉醫療器材股份有限公司南崗工業區六廠新建工程水土保持計畫(第一次變更)", client:"鴻偉醫療器材股份有限公司", rep:"", actualClose:"2016-06-28", docNo:"府農管字第1050138957號", caseType:"水土保持計畫", note:"類型:工廠；紙本編號:10511；製作定稿:105.06.21；歷史資料匯入"},
+  {name:"鴻偉醫療器材股份有限公司南崗工業區六廠新建工程水土保持計畫", client:"鴻偉醫療器材股份有限公司", rep:"", actualClose:"2016-03-08", docNo:"府農管字第1050051009號", caseType:"水土保持計畫", note:"類型:工廠；紙本編號:10502；製作定稿:105.02.22；歷史資料匯入"},
+];
+
+function historicalCaseToRecord(r){
+  return {id:uid(), name:r.name, client:r.client, rep:r.rep||"", handler:"彥瑾", filingDate:"", actualClose:r.actualClose, status:"已結案", docNo:r.docNo, caseType:r.caseType, category:"", note:r.note};
+}
+
+function blankState(){
+  return { cases: [], progress: [], contacts: [], docs: [], categoryOptions: DEFAULT_CATEGORY_OPTIONS.slice(), settings: {bonusEnabled:false, salaryByYear:{}}, reminders: [] };
+}
+function getReminders(){
+  if(!state.reminders) state.reminders = [];
+  return state.reminders;
+}
+function getRemindersForCase(caseId){
+  return getReminders().filter(r=>r.caseId===caseId);
+}
+function getSettings(){
+  if(!state.settings) state.settings = {bonusEnabled:false};
+  return state.settings;
+}
+/* 月薪依年度個別設定（因為每年薪資可能不同），存在 settings.salaryByYear = { "2026": "60000", ... } */
+function getYearSalary(year){
+  const s = getSettings();
+  if(!s.salaryByYear) s.salaryByYear = {};
+  return s.salaryByYear[year] || '';
+}
+function setYearSalary(year, val){
+  const s = getSettings();
+  if(!s.salaryByYear) s.salaryByYear = {};
+  s.salaryByYear[year] = val;
+}
+function getCategoryOptions(){
+  if(!state.categoryOptions || !state.categoryOptions.length){
+    state.categoryOptions = DEFAULT_CATEGORY_OPTIONS.slice();
+  }
+  return state.categoryOptions;
+}
+function addCategoryOption(name){
+  const trimmed = (name||'').trim();
+  if(!trimmed) return false;
+  const opts = getCategoryOptions();
+  if(opts.includes(trimmed)) return false;
+  opts.push(trimmed);
+  return true;
+}
+function removeCategoryOption(name){
+  if(!name) return false;
+  const opts = getCategoryOptions();
+  const idx = opts.indexOf(name);
+  if(idx === -1) return false;
+  opts.splice(idx, 1);
+  state.cases.forEach(c=>{ if(c.category === name) c.category = ""; });
+  return true;
+}
+function getReviewAgencyOptions(){
+  if(!state.reviewAgencyOptions) state.reviewAgencyOptions = [];
+  DEFAULT_REVIEW_AGENCIES.forEach(a=>{
+    if(!state.reviewAgencyOptions.includes(a.name)) state.reviewAgencyOptions.push(a.name);
+  });
+  const order = DEFAULT_REVIEW_AGENCIES.map(a=>a.name);
+  state.reviewAgencyOptions.sort((x,y)=>{
+    const ix = order.indexOf(x), iy = order.indexOf(y);
+    if(ix===-1 && iy===-1) return 0; // 都不是預設清單裡的，維持原本相對順序
+    if(ix===-1) return 1;  // 使用者自行新增、不在預設地理清單裡的排最後
+    if(iy===-1) return -1;
+    return ix-iy; // 依地理位置(北到南)排序
+  });
+  return state.reviewAgencyOptions;
+}
+function addReviewAgencyOption(name){
+  const trimmed = (name||'').trim();
+  if(!trimmed) return false;
+  const opts = getReviewAgencyOptions();
+  if(opts.includes(trimmed)) return false;
+  opts.push(trimmed);
+  return true;
+}
+function getReviewAgencyProfiles(){
+  if(!state.reviewAgencyProfiles) state.reviewAgencyProfiles = {};
+  DEFAULT_REVIEW_AGENCIES.forEach(a=>{
+    if(!state.reviewAgencyProfiles[a.name]){
+      state.reviewAgencyProfiles[a.name] = {
+        name: a.contactName || '',
+        phone: a.phone || '',
+        hasPhone: !!a.phone,
+        lineId: a.lineId || '',
+        hasLine: !!a.lineId,
+        email: a.email || '',
+        address: a.address || ''
+      };
+    }
+  });
+  return state.reviewAgencyProfiles;
+}
+function saveReviewAgencyProfile(draft){
+  const key = (draft.org||'').trim();
+  if(!key) return;
+  getReviewAgencyProfiles()[key] = {
+    name: draft.name || '',
+    phone: draft.phone || '',
+    hasPhone: !!draft.hasPhone,
+    lineId: draft.lineId || '',
+    hasLine: !!draft.hasLine,
+    email: draft.email || '',
+    address: draft.address || ''
+  };
+}
+function touchCase(caseId){
+  const c = state.cases.find(x=>x.id===caseId);
+  if(c) c.updatedAt = Date.now();
+}
+function getMaterialsChecklist(c){
+  if(!c.materialsChecklist || !c.materialsChecklist.length){
+    c.materialsChecklist = DEFAULT_MATERIALS_CHECKLIST.map(text=>({id:uid(), text, checked:false}));
+  }
+  // 舊資料文字修正（曾經是「請填寫水土保持義務人相關資料」）
+  c.materialsChecklist.forEach(item=>{
+    if(item.text === "請填寫水土保持義務人相關資料"){
+      item.text = "水土保持義務人相關資料";
+    }
+  });
+  return c.materialsChecklist;
+}
+
+let state = null;
+let activeTab = "cases";
+let saveTimer = null;
+let currentDocId = null;
+let currentUserCode = null;
+let undoStack = [];
+let pendingSnapshot = true;
+const MAX_UNDO = 20;
+
+function maybeSnapshot(){
+  if(pendingSnapshot && state){
+    undoStack.push(JSON.stringify(state));
+    if(undoStack.length > MAX_UNDO) undoStack.shift();
+    pendingSnapshot = false;
+    updateUndoButton();
+  }
+}
+function updateUndoButton(){
+  const btn = document.getElementById('undoBtn');
+  if(!btn) return;
+  btn.style.display = undoStack.length ? '' : 'none';
+}
+function doUndo(){
+  if(!undoStack.length) return;
+  const prev = undoStack.pop();
+  state = JSON.parse(prev);
+  pendingSnapshot = true;
+  updateUndoButton();
+  scheduleSave(true);
+  render();
+}
+
+/* ============ 帳號（代號＋密碼）============ */
+async function sha256Hex(str){
+  const enc = new TextEncoder().encode(str);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function loginScreenHtml(errorMsg){
+  return `
+    <div style="max-width:380px; margin:40px auto;">
+      <div class="card-title" style="margin-bottom:4px;">登入 / 建立帳號</div>
+      <div class="card-hint" style="margin-bottom:16px;">輸入代號與密碼。第一次輸入會自動建立新的一份資料；之後用同樣的代號＋密碼登入，就能看到同一份。</div>
+      ${errorMsg ? `<div style="color:var(--clay); font-size:12.5px; margin-bottom:10px;">${escapeHtml(errorMsg)}</div>` : ''}
+      <div class="modal-row">
+        <label>代號</label>
+        <input type="text" id="loginCode" placeholder="">
+      </div>
+      <div class="modal-row">
+        <label>密碼</label>
+        <input type="password" id="loginPassword" placeholder="4～6位數字或簡單文字">
+      </div>
+      <button class="btn" id="loginSubmit" style="width:100%; padding:10px;">登入 / 建立</button>
+    </div>`;
+}
+
+function renderLoginScreen(errorMsg){
+  document.getElementById('tabs').innerHTML = '';
+  document.getElementById('cardArea').innerHTML = loginScreenHtml(errorMsg);
+  const submit = document.getElementById('loginSubmit');
+  const codeEl = document.getElementById('loginCode');
+  const pwEl = document.getElementById('loginPassword');
+  const doSubmit = async () => {
+    const code = (codeEl.value||'').trim();
+    const pw = (pwEl.value||'').trim();
+    if(!code || !pw){ renderLoginScreen('請輸入代號與密碼'); return; }
+    submit.textContent = '登入中…'; submit.disabled = true;
+    try{
+      const docId = await sha256Hex(code + '::' + pw);
+      const snap = await db.ref('users/' + docId).once('value');
+      if(!snap.exists()){
+        // 這組代號密碼還沒建立過帳號 → 檢查代號是否已被別人用（不同密碼）註冊過
+        const taken = await isCodeTaken(code);
+        if(taken){
+          renderLoginScreen('這個代號已經有人使用，請確認密碼是否正確，或換一個代號');
+          return;
+        }
+      }
+      await enterWithDocId(docId, code);
+    }catch(e){
+      renderLoginScreen('登入失敗，請重試');
+    }
+  };
+  submit.addEventListener('click', doSubmit);
+  pwEl.addEventListener('keydown', e=>{ if(e.key==='Enter') doSubmit(); });
+}
+
+async function codeRegistryKey(code){
+  return await sha256Hex('code::' + code);
+}
+async function isCodeTaken(code){
+  const key = await codeRegistryKey(code);
+  const snap = await db.ref('codes/' + key).once('value');
+  return snap.exists();
+}
+async function registerCode(code){
+  const key = await codeRegistryKey(code);
+  await db.ref('codes/' + key).set(code);
+}
+async function unregisterCode(code){
+  const key = await codeRegistryKey(code);
+  await db.ref('codes/' + key).remove();
+}
+
+async function enterWithDocId(docId, code){
+  currentDocId = docId;
+  currentUserCode = code;
+  document.getElementById('cardArea').innerHTML = `<div class="empty">載入中…</div>`;
+  try{
+    const snap = await db.ref('users/' + docId).once('value');
+    if(snap.exists()){
+      const data = snap.val();
+      state = data.state ? JSON.parse(data.state) : blankState();
+      // 補登記：舊帳號可能是加入代號登記機制之前建立的，登入時順便補上
+      const taken = await isCodeTaken(code);
+      if(!taken) await registerCode(code);
+    } else {
+      state = blankState();
+      await db.ref('users/' + docId).set({ state: JSON.stringify(state), updatedAt: firebase.database.ServerValue.TIMESTAMP });
+      await registerCode(code);
+    }
+    localStorage.setItem(LOCAL_KEY, JSON.stringify({docId, code}));
+    renderUserInfoBar(code);
+    undoStack = []; pendingSnapshot = true; updateUndoButton();
+    render();
+    checkDeadlineReminders();
+  }catch(e){
+    document.getElementById('cardArea').innerHTML = `<div class="empty">連線失敗，請確認網路連線後重新整理頁面重試</div>`;
+  }
+}
+
+/* PDF匯出功能開關：使用者要求先隱藏匯出PDF按鈕，等確定明確的匯出格式後再打開。
+   之後要恢復，只要把這裡改回 true 即可，其餘程式碼（modal/匯出邏輯）都還在，不用重寫 */
+const PDF_EXPORT_ENABLED = false;
+
+function renderUserInfoBar(code){
+  document.getElementById('userInfo').innerHTML = `代號：${escapeHtml(code)} · <a href="#" id="switchUserLink" style="color:var(--teal);">切換帳號</a> · <a href="#" id="changeCredLink" style="color:var(--teal);">更換代號/密碼</a> · <a href="#" id="settingsLink" style="color:var(--teal);">個人設定</a>${PDF_EXPORT_ENABLED ? ` · <a href="#" id="pdfExportLink" style="color:var(--teal);">匯出PDF</a>` : ''} · <a href="#" id="deleteAccountLink" style="color:var(--deadline-red);">刪除帳號資料</a>`;
+  document.getElementById('switchUserLink').addEventListener('click', (e)=>{ e.preventDefault(); logout(); });
+  document.getElementById('changeCredLink').addEventListener('click', (e)=>{ e.preventDefault(); openChangeCredModal(); });
+  document.getElementById('settingsLink').addEventListener('click', (e)=>{ e.preventDefault(); openSettingsModal(); });
+  if(PDF_EXPORT_ENABLED){
+    document.getElementById('pdfExportLink').addEventListener('click', (e)=>{ e.preventDefault(); openPdfExportModal(); });
+  }
+  document.getElementById('deleteAccountLink').addEventListener('click', (e)=>{ e.preventDefault(); openDeleteAccountModal(); });
+}
+
+function settingsModalHtml(){
+  const s = getSettings();
+  return `
+    <div class="modal-overlay" id="settingsOverlay">
+      <div class="modal-box">
+        <div class="modal-title">個人設定</div>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--ink); margin-bottom:12px;">
+          <input type="checkbox" id="stBonusEnabled" style="width:auto;" ${s.bonusEnabled?'checked':''}> 啟用「結案獎金」功能
+        </label>
+        <div class="card-hint" style="margin-bottom:10px;">啟用後，「各案總覽」的基本資料會多一個「服務費」欄位，並會出現「結案獎金」分頁。獎金＝服務費×4%；年度目標＝月薪×36（月薪在「結案獎金」分頁裡依年度個別設定，因為每年薪資可能不同）；分頁裡會顯示年度完成率，也可以記錄老闆每次實際匯款的日期與金額。</div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="stCancel">取消</button>
+          <button class="btn" id="stSave">儲存</button>
+        </div>
+      </div>
+    </div>`;
+}
+function openSettingsModal(){
+  document.getElementById('credModalArea').innerHTML = settingsModalHtml();
+  bindSettingsModal();
+}
+function closeSettingsModal(){
+  document.getElementById('credModalArea').innerHTML = '';
+}
+function bindSettingsModal(){
+  document.getElementById('stCancel') && document.getElementById('stCancel').addEventListener('click', closeSettingsModal);
+  document.getElementById('settingsOverlay') && document.getElementById('settingsOverlay').addEventListener('click', (e)=>{
+    if(e.target.id === 'settingsOverlay') closeSettingsModal();
+  });
+  document.getElementById('stSave') && document.getElementById('stSave').addEventListener('click', ()=>{
+    const s = getSettings();
+    s.bonusEnabled = document.getElementById('stBonusEnabled').checked;
+    scheduleSave(true);
+    closeSettingsModal();
+    render();
+  });
+}
+
+function logout(){
+  localStorage.removeItem(LOCAL_KEY);
+  currentDocId = null; currentUserCode = null; state = null;
+  undoStack = []; pendingSnapshot = true;
+  document.getElementById('userInfo').innerHTML = '';
+  updateUndoButton();
+  renderLoginScreen();
+}
+
+/* ============ 更換代號／密碼 ============ */
+function changeCredModalHtml(errorMsg, successMsg){
+  return `
+    <div class="modal-overlay" id="changeCredOverlay">
+      <div class="modal-box">
+        <div class="modal-title">更換代號／密碼</div>
+        <div class="card-hint" style="margin-bottom:14px;">請先輸入目前的代號與密碼確認身分，再設定新的代號與密碼。原本代號密碼輸入錯誤將無法更換。</div>
+        ${errorMsg ? `<div style="color:var(--deadline-red); font-size:12.5px; margin-bottom:10px; font-weight:700;">${escapeHtml(errorMsg)}</div>` : ''}
+        ${successMsg ? `<div style="color:var(--moss); font-size:12.5px; margin-bottom:10px; font-weight:700;">${escapeHtml(successMsg)}</div>` : ''}
+        <div class="modal-row"><label>目前代號</label><input type="text" id="ccOldCode"></div>
+        <div class="modal-row"><label>目前密碼</label><input type="password" id="ccOldPassword"></div>
+        <div class="modal-row" style="border-top:1px dashed var(--card-line); padding-top:12px;"><label>新代號</label><input type="text" id="ccNewCode"></div>
+        <div class="modal-row"><label>新密碼</label><input type="password" id="ccNewPassword"></div>
+        <div class="modal-row"><label>再輸入一次新密碼</label><input type="password" id="ccNewPassword2"></div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="ccCancel">取消</button>
+          <button class="btn" id="ccSubmit">確認更換</button>
+        </div>
+      </div>
+    </div>`;
+}
+function openChangeCredModal(){
+  document.getElementById('credModalArea').innerHTML = changeCredModalHtml();
+  bindChangeCredModal();
+}
+function closeChangeCredModal(){
+  document.getElementById('credModalArea').innerHTML = '';
+}
+function bindChangeCredModal(){
+  document.getElementById('ccCancel') && document.getElementById('ccCancel').addEventListener('click', closeChangeCredModal);
+  document.getElementById('changeCredOverlay') && document.getElementById('changeCredOverlay').addEventListener('click', (e)=>{
+    if(e.target.id === 'changeCredOverlay') closeChangeCredModal();
+  });
+  document.getElementById('ccSubmit') && document.getElementById('ccSubmit').addEventListener('click', async ()=>{
+    const oldCode = (document.getElementById('ccOldCode').value||'').trim();
+    const oldPw = (document.getElementById('ccOldPassword').value||'').trim();
+    const newCode = (document.getElementById('ccNewCode').value||'').trim();
+    const newPw = (document.getElementById('ccNewPassword').value||'').trim();
+    const newPw2 = (document.getElementById('ccNewPassword2').value||'').trim();
+    if(!oldCode || !oldPw || !newCode || !newPw || !newPw2){
+      document.getElementById('credModalArea').innerHTML = changeCredModalHtml('請完整填寫所有欄位');
+      bindChangeCredModal();
+      return;
+    }
+    if(newPw !== newPw2){
+      document.getElementById('credModalArea').innerHTML = changeCredModalHtml('兩次輸入的新密碼不一致');
+      bindChangeCredModal();
+      return;
+    }
+    const oldCheckId = await sha256Hex(oldCode + '::' + oldPw);
+    if(oldCheckId !== currentDocId){
+      document.getElementById('credModalArea').innerHTML = changeCredModalHtml('原本代號或密碼錯誤，無法更換');
+      bindChangeCredModal();
+      return;
+    }
+    const newDocId = await sha256Hex(newCode + '::' + newPw);
+    if(newDocId === currentDocId){
+      document.getElementById('credModalArea').innerHTML = changeCredModalHtml('新的代號密碼組合跟原本相同，請換一組');
+      bindChangeCredModal();
+      return;
+    }
+    try{
+      const snap = await db.ref('users/' + newDocId).once('value');
+      if(snap.exists()){
+        document.getElementById('credModalArea').innerHTML = changeCredModalHtml('這組新代號密碼已經被使用，請換一組');
+        bindChangeCredModal();
+        return;
+      }
+      if(newCode !== oldCode){
+        const taken = await isCodeTaken(newCode);
+        if(taken){
+          document.getElementById('credModalArea').innerHTML = changeCredModalHtml('這個新代號已經有人使用，請換一個代號');
+          bindChangeCredModal();
+          return;
+        }
+      }
+      await db.ref('users/' + newDocId).set({
+        state: JSON.stringify(state),
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+      });
+      await db.ref('users/' + currentDocId).remove();
+      if(newCode !== oldCode){
+        await unregisterCode(oldCode);
+        await registerCode(newCode);
+      }
+      currentDocId = newDocId;
+      currentUserCode = newCode;
+      localStorage.setItem(LOCAL_KEY, JSON.stringify({docId:newDocId, code:newCode}));
+      renderUserInfoBar(newCode);
+      closeChangeCredModal();
+    }catch(e){
+      document.getElementById('credModalArea').innerHTML = changeCredModalHtml('更換失敗，請確認網路連線後重試');
+      bindChangeCredModal();
+    }
+  });
+}
+
+/* ============ 刪除帳號資料 ============ */
+function deleteAccountModalHtml(errorMsg){
+  return `
+    <div class="modal-overlay" id="deleteAccountOverlay">
+      <div class="modal-box">
+        <div class="modal-title">刪除帳號資料</div>
+        <div style="background:var(--deadline-red-soft); border:1px solid var(--deadline-red); border-radius:8px; padding:12px; margin-bottom:14px;">
+          <div style="color:var(--deadline-red); font-weight:700; font-size:13px;">⚠ 此操作會永久刪除這個代號底下所有案件、工作進度、聯絡窗口資料，刪除後無法復原！</div>
+        </div>
+        ${errorMsg ? `<div style="color:var(--deadline-red); font-size:12.5px; margin-bottom:10px; font-weight:700;">${escapeHtml(errorMsg)}</div>` : ''}
+        <div class="modal-row"><label>請輸入代號確認</label><input type="text" id="daCode"></div>
+        <div class="modal-row"><label>請輸入密碼確認</label><input type="password" id="daPassword"></div>
+        <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--ink); margin-bottom:6px;">
+          <input type="checkbox" id="daConfirmCheck" style="width:auto;"> 我了解此操作無法復原，確定要永久刪除
+        </label>
+        <div class="modal-actions">
+          <button class="btn ghost" id="daCancel">取消</button>
+          <button class="btn" id="daSubmit" style="background:var(--deadline-red);">永久刪除</button>
+        </div>
+      </div>
+    </div>`;
+}
+function openDeleteAccountModal(){
+  document.getElementById('credModalArea').innerHTML = deleteAccountModalHtml();
+  bindDeleteAccountModal();
+}
+function closeDeleteAccountModal(){
+  document.getElementById('credModalArea').innerHTML = '';
+}
+function bindDeleteAccountModal(){
+  document.getElementById('daCancel') && document.getElementById('daCancel').addEventListener('click', closeDeleteAccountModal);
+  document.getElementById('deleteAccountOverlay') && document.getElementById('deleteAccountOverlay').addEventListener('click', (e)=>{
+    if(e.target.id === 'deleteAccountOverlay') closeDeleteAccountModal();
+  });
+  document.getElementById('daSubmit') && document.getElementById('daSubmit').addEventListener('click', async ()=>{
+    const code = (document.getElementById('daCode').value||'').trim();
+    const pw = (document.getElementById('daPassword').value||'').trim();
+    const checked = document.getElementById('daConfirmCheck').checked;
+    if(!code || !pw){
+      document.getElementById('credModalArea').innerHTML = deleteAccountModalHtml('請輸入代號與密碼');
+      bindDeleteAccountModal();
+      return;
+    }
+    if(!checked){
+      document.getElementById('credModalArea').innerHTML = deleteAccountModalHtml('請勾選確認了解此操作無法復原');
+      bindDeleteAccountModal();
+      return;
+    }
+    const checkId = await sha256Hex(code + '::' + pw);
+    if(checkId !== currentDocId){
+      document.getElementById('credModalArea').innerHTML = deleteAccountModalHtml('代號或密碼錯誤，無法刪除');
+      bindDeleteAccountModal();
+      return;
+    }
+    try{
+      await db.ref('users/' + currentDocId).remove();
+      await unregisterCode(currentUserCode);
+      closeDeleteAccountModal();
+      localStorage.removeItem(LOCAL_KEY);
+      currentDocId = null; currentUserCode = null; state = null;
+      undoStack = []; pendingSnapshot = true;
+      document.getElementById('userInfo').innerHTML = '';
+      updateUndoButton();
+      renderLoginScreen('此代號的資料已永久刪除');
+    }catch(e){
+      document.getElementById('credModalArea').innerHTML = deleteAccountModalHtml('刪除失敗，請確認網路連線後重試');
+      bindDeleteAccountModal();
+    }
+  });
+}
+
+/* ============ 儲存 / 載入 ============ */
+async function tryAutoLogin(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(LOCAL_KEY) || 'null');
+    if(saved && saved.docId && saved.code){
+      await enterWithDocId(saved.docId, saved.code);
+      return;
+    }
+  }catch(e){ /* 忽略，改走登入畫面 */ }
+  renderLoginScreen();
+}
+
+function scheduleSave(immediate){
+  const bar = document.getElementById('savebar');
+  const txt = document.getElementById('saveText');
+  bar.classList.add('saving'); txt.textContent = "儲存中…";
+  clearTimeout(saveTimer);
+  const doSave = async () => {
+    if(!currentDocId) return;
+    try{
+      await db.ref('users/' + currentDocId).set({
+        state: JSON.stringify(state),
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+      });
+      bar.classList.remove('saving');
+      txt.textContent = "已儲存 " + new Date().toLocaleTimeString('zh-TW',{hour12:false});
+      pendingSnapshot = true;
+    }catch(e){
+      txt.textContent = "儲存失敗，請確認網路連線";
+    }
+  };
+  if(immediate){ doSave(); } else { saveTimer = setTimeout(doSave, 500); }
+}
+
+/* ============ 小工具 ============ */
+function caseName(id){
+  const c = state.cases.find(x=>x.id===id);
+  return c ? c.name : "⚠ 案件已刪除";
+}
+function caseOptions(selectedId){
+  if(state.cases.length===0) return '<option value="">請先於「結案總表」新增案名</option>';
+  return state.cases.map(c=>`<option value="${c.id}" ${c.id===selectedId?'selected':''}>${escapeHtml(c.name)}</option>`).join('');
+}
+function selectOptions(list, selected){
+  return list.map(v=>`<option value="${v}" ${v===selected?'selected':''}>${v}</option>`).join('');
+}
+function escapeHtml(s){
+  return (s||"").replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function formatCaseNameHtml(name){
+  if(!name) return '';
+  const escaped = escapeHtml(name);
+  return escaped.split('土地').join('土地<br>').replace(/<br>$/, '');
+}
+function formatMoneyDisplay(v){
+  const raw = String(v||'').replace(/[^\d]/g, '');
+  if(!raw) return '';
+  return Number(raw).toLocaleString('en-US');
+}
+function formatMoneyInputLive(el){
+  const raw = el.value.replace(/[^\d]/g, '');
+  if(!raw){ el.value = ''; return ''; }
+  const formatted = Number(raw).toLocaleString('en-US');
+  const cursorFromEnd = el.value.length - el.selectionStart;
+  el.value = formatted;
+  const newPos = Math.max(0, formatted.length - cursorFromEnd);
+  el.setSelectionRange(newPos, newPos);
+  return raw;
+}
+function toROC(dateStr){
+  if(!dateStr) return '';
+  const parts = String(dateStr).split('-');
+  if(parts.length !== 3) return dateStr;
+  const y = parseInt(parts[0], 10) - 1911;
+  if(isNaN(y)) return dateStr;
+  return `民國${y}年${parts[1]}月${parts[2]}日`;
+}
+function badgeClassCaseStatus(s){
+  return s==="已結案" ? "badge-moss" : s==="暫停" ? "badge-grey" : "badge-amber";
+}
+function getProgressForCase(caseId){
+  return state.progress.find(p => p.caseId === caseId) || null;
+}
+function blankProgress(caseId){
+  return {id:uid(), caseId, filingDate:"", review1:"", deadline1:"", revise1:"", review2:"", deadline2:"", revise2:"", review3:"", deadline3:"", revise3:"", viewCopy:"", finalCopy:"", extensions:[], note:""};
+}
+function computeStageIndex(p){
+  if(!p) return -1;
+  if(p.finalCopy) return 5;
+  if(p.viewCopy) return 4;
+  if(p.review3) return 3;
+  if(p.review2) return 2;
+  if(p.review1) return 1;
+  if(p.filingDate) return 0;
+  return -1;
+}
+function rulerHtml(caseId){
+  const p = getProgressForCase(caseId);
+  const idx = computeStageIndex(p);
+  let ticks = "";
+  for(let i=0;i<STAGES.length;i++){
+    let cls = "tick";
+    if(idx>=0 && i<idx) cls += " done";
+    else if(i===idx) cls += " now";
+    ticks += `<span class="${cls}" title="${STAGES[i]}"></span>`;
+  }
+  const label = idx>=0 ? STAGES[idx] : "尚未開始";
+  return `<span class="ruler">${ticks}</span><span class="ruler-label">${escapeHtml(label)}</span>`;
+}
+
+function buildProgressNodes(p){
+  const nodes = [];
+  if(!p) return nodes;
+  if(p.filingDate) nodes.push({key:"filing", label:"掛件", date:p.filingDate, isExt:false});
+  for(let n=1; n<=3; n++){
+    const reviewDate = p["review"+n];
+    if(!reviewDate) break; // 尚未進行到這一次審查，後面的也不會有
+    nodes.push({key:"review"+n, label:"第"+n+"次審查", date:reviewDate, deadline:p["deadline"+n], revise:p["revise"+n], isExt:false});
+    const exts = (p.extensions||[]).filter(x => String(x.reviewNo) === String(n));
+    if(exts.length){
+      let latestDocDate = "";
+      let latestNewDeadline = "";
+      exts.forEach(x=>{
+        if(x.date && x.date > latestDocDate) latestDocDate = x.date;
+        if(x.newDeadline && x.newDeadline > latestNewDeadline) latestNewDeadline = x.newDeadline;
+      });
+      nodes.push({key:"ext"+n, label:"展延", date:latestDocDate, newDeadline:latestNewDeadline, count:exts.length, isExt:true});
+    }
+    if(!p["revise"+n]) break; // 這次審查修正本尚未提送，還沒進到下一次審查
+  }
+  if(p.viewCopy) nodes.push({key:"view", label:"檢視本", date:p.viewCopy, isExt:false});
+  if(p.finalCopy) nodes.push({key:"final", label:"定稿本", date:p.finalCopy, isExt:false});
+  return nodes;
+}
+
+function progressBarHtml(p){
+  const nodes = buildProgressNodes(p);
+  if(nodes.length === 0){
+    return `<div class="card-hint" style="margin:6px 0 0;">尚未開始（設定工作進度後會顯示到目前的階段）</div>`;
+  }
+  const watchInfo = getWatchDateForCase(p);
+  const lastIdx = nodes.length - 1;
+  const steps = nodes.map((node, i)=>{
+    let cls = "step";
+    if(node.isExt) cls += " ext-step";
+    if(i < lastIdx) cls += " done";
+    else cls += " now";
+    const nodeReviewNo = node.key && node.key.indexOf('review')===0 ? node.key.replace('review','') : null;
+    const isWatchedReview = watchInfo && nodeReviewNo && String(watchInfo.reviewNo)===String(nodeReviewNo);
+    const dateIsWatched = isWatchedReview && watchInfo.kind === '審查日期';
+    const deadlineIsWatched = isWatchedReview && watchInfo.kind === '修正期限';
+    const dateStr = node.date ? `<div class="step-date" ${dateIsWatched?'style="color:var(--deadline-red); font-weight:700;"':''}>${escapeHtml(toROC(node.date))}</div>` : '';
+    const deadlineStr = node.deadline ? `<div class="step-deadline" ${deadlineIsWatched?'style="color:var(--deadline-red); font-weight:700;"':''}>修正期限：${escapeHtml(toROC(node.deadline))}</div>` : '';
+    const reviseStr = node.revise ? `<div class="step-date" style="color:var(--moss); font-weight:700;">修正本提送：${escapeHtml(toROC(node.revise))}</div>` : '';
+    const extInfo = node.isExt
+      ? `<div class="step-ext">共${node.count}筆展延${node.newDeadline ? '<br><span style="color:var(--deadline-red); font-weight:700;">新期限：'+escapeHtml(toROC(node.newDeadline))+'</span>' : ''}</div>`
+      : '';
+    const dotContent = node.isExt ? '延' : (nodes.slice(0,i+1).filter(x=>!x.isExt).length);
+    return `<div class="${cls}"><div class="step-line"></div><div class="step-dot">${dotContent}</div><div class="step-label">${node.label}</div>${dateStr}${deadlineStr}${reviseStr}${extInfo}</div>`;
+  }).join('');
+  return `<div class="stepper">${steps}</div>`;
+}
+
+/* PDF匯出專用進度條：html2canvas對「絕對定位」的連接線支援不穩定，容易跑位，
+   這裡改用「純flexbox、圓點置中、左右各半條連接線」的寫法，不用position:absolute，
+   確保匯出成PDF時圓點永遠在上面、連接線不會跑掉 */
+function progressBarHtmlForPdf(p){
+  const nodes = buildProgressNodes(p);
+  if(nodes.length === 0){
+    return `<div class="card-hint" style="margin:6px 0 0;">尚未開始（設定工作進度後會顯示到目前的階段）</div>`;
+  }
+  const watchInfo = getWatchDateForCase(p);
+  const lastIdx = nodes.length - 1;
+  const dotColor = (node, isNow) => {
+    if(node.isExt) return isNow ? 'background:var(--amber); border-color:var(--amber); color:#fff;' : 'background:var(--amber-soft); border-color:var(--amber); color:var(--amber); font-weight:700;';
+    return isNow ? 'background:var(--amber); border-color:var(--amber); color:#fff;' : 'background:var(--teal); border-color:var(--teal); color:#fff;';
+  };
+  const lineColor = (node) => node.isExt ? 'var(--amber)' : 'var(--teal)';
+  const dotsRow = nodes.map((node, i)=>{
+    const isNow = i === lastIdx;
+    const dotContent = node.isExt ? '延' : (nodes.slice(0,i+1).filter(x=>!x.isExt).length);
+    // 左半線＝連接「前一個圓點→這個圓點」的路徑，用「這個節點」的顏色（呼應原本 .step.done .step-line 的邏輯）
+    const leftLineStyle = i===0 ? 'background:transparent;' : `background:${lineColor(node)};`;
+    // 右半線＝連接「這個圓點→下一個圓點」的路徑，用「下一個節點」的顏色，跟下一個節點的左半線同色，銜接起來才會是一整條線
+    const rightLineStyle = i===lastIdx ? 'background:transparent;' : `background:${lineColor(nodes[i+1])};`;
+    return `<div class="stepper-pdf-unit">
+      <div class="stepper-pdf-connector" style="${leftLineStyle}"></div>
+      <div class="stepper-pdf-dot" style="${dotColor(node, isNow)}">${dotContent}</div>
+      <div class="stepper-pdf-connector" style="${rightLineStyle}"></div>
+    </div>`;
+  }).join('');
+  const labelsRow = nodes.map((node, i)=>{
+    const nodeReviewNo = node.key && node.key.indexOf('review')===0 ? node.key.replace('review','') : null;
+    const isWatchedReview = watchInfo && nodeReviewNo && String(watchInfo.reviewNo)===String(nodeReviewNo);
+    const dateIsWatched = isWatchedReview && watchInfo.kind === '審查日期';
+    const deadlineIsWatched = isWatchedReview && watchInfo.kind === '修正期限';
+    const labelStr = `<div class="stepper-pdf-label">${node.label}</div>`;
+    const dateStr = node.date ? `<div class="stepper-pdf-sub" ${dateIsWatched?'style="color:var(--deadline-red); font-weight:700;"':''}>${escapeHtml(toROC(node.date))}</div>` : '';
+    const deadlineStr = node.deadline ? `<div class="stepper-pdf-sub" ${deadlineIsWatched?'style="color:var(--deadline-red); font-weight:700;"':''}>修正期限：${escapeHtml(toROC(node.deadline))}</div>` : '';
+    const reviseStr = node.revise ? `<div class="stepper-pdf-sub" style="color:var(--moss); font-weight:700;">修正本提送：${escapeHtml(toROC(node.revise))}</div>` : '';
+    const extInfo = node.isExt
+      ? `<div class="stepper-pdf-sub" style="color:var(--amber); font-weight:700;">共${node.count}筆展延${node.newDeadline ? '<br><span style="color:var(--deadline-red);">新期限：'+escapeHtml(toROC(node.newDeadline))+'</span>' : ''}</div>`
+      : '';
+    return `<div class="stepper-pdf-label-col">${labelStr}${dateStr}${deadlineStr}${reviseStr}${extInfo}</div>`;
+  }).join('');
+  return `<div class="stepper-pdf">
+    <div class="stepper-pdf-dots-row">${dotsRow}</div>
+    <div class="stepper-pdf-labels-row">${labelsRow}</div>
+  </div>`;
+}
+
+function getActiveReviewNo(p){
+  if(!p) return null;
+  for(let n=1; n<=3; n++){
+    if(p['review'+n] && !p['revise'+n]) return n;
+  }
+  return null;
+}
+function daysUntil(dateStr){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const target = new Date(dateStr+'T00:00:00');
+  return Math.round((target-today)/86400000);
+}
+function toLocalDateStr(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function todayLocalStr(){
+  return toLocalDateStr(new Date());
+}
+function businessDayBefore(dateStr){
+  // 目標日期的前一天，若剛好落在週六／週日，繼續往前推到週五
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() - 1);
+  while(d.getDay() === 0 || d.getDay() === 6){
+    d.setDate(d.getDate() - 1);
+  }
+  return toLocalDateStr(d);
+}
+function isReminderActive(dateStr){
+  if(!dateStr) return false;
+  const todayStr = todayLocalStr();
+  return todayStr >= businessDayBefore(dateStr);
+}
+function getWatchDateForCase(p){
+  const n = getActiveReviewNo(p);
+  if(!n) return null;
+  const reviewDate = p['review'+n];
+  const baseDeadline = p['deadline'+n];
+  const exts = (p.extensions||[]).filter(x=>String(x.reviewNo)===String(n));
+  let latestNewDeadline = '';
+  exts.forEach(x=>{ if(x.newDeadline && x.newDeadline > latestNewDeadline) latestNewDeadline = x.newDeadline; });
+  // 優先序：目前進度最新的日期為主 → 最新展延期限 > 修正期限 > 審查日期本身
+  if(latestNewDeadline) return {reviewNo:n, date:latestNewDeadline, kind:'展延期限'};
+  if(baseDeadline) return {reviewNo:n, date:baseDeadline, kind:'修正期限'};
+  if(reviewDate) return {reviewNo:n, date:reviewDate, kind:'審查日期'};
+  return null;
+}
+function computeDueSoonList(){
+  const list = [];
+  state.cases.filter(c=>c.status==="進行中" || c.status==="暫停").forEach(c=>{
+    const p = getProgressForCase(c.id);
+    const info = getWatchDateForCase(p);
+    if(!info) return;
+    if(!isReminderActive(info.date)) return;
+    const ack = p.ackWatch;
+    if(ack && String(ack.reviewNo)===String(info.reviewNo) && ack.date===info.date) return;
+    list.push({type:'watch', caseId:c.id, caseName:c.name, reviewNo:info.reviewNo, date:info.date, kind:info.kind, days:daysUntil(info.date)});
+  });
+  return list;
+}
+function computeReminderNoticeList(){
+  const list = [];
+  getReminders().forEach(r=>{
+    if(r.done || !r.date) return;
+    if(!isReminderActive(r.date)) return;
+    const c = state.cases.find(x=>x.id===r.caseId);
+    list.push({type:'reminder', id:r.id, caseId:r.caseId, caseName:c?c.name:'（案件已刪除）', text:r.text||'（未填寫內容）', date:r.date, time:r.time||'', days:daysUntil(r.date)});
+  });
+  return list;
+}
+let deadlineNoticeList = [];
+function deadlineNoticeHtml(list){
+  const rows = list.map(item=>{
+    if(item.type === 'reminder'){
+      const statusText = item.days < 0 ? `已逾期 ${-item.days} 天` : item.days === 0 ? '就是今天' : `還有 ${item.days} 天`;
+      return `
+        <div style="border:1px solid var(--card-line); border-radius:8px; padding:10px 12px; margin-bottom:8px;">
+          <span class="badge badge-teal" style="margin-bottom:4px;">備註提醒</span>
+          <div style="font-weight:700; font-size:13px; margin-top:4px;">${escapeHtml(item.caseName)}</div>
+          <div style="font-size:12px; color:var(--ink-soft); margin-top:2px;">${escapeHtml(item.text)}</div>
+          <div style="font-size:12px; font-weight:700; color:var(--deadline-red); margin-top:2px;">${statusText}（${escapeHtml(toROC(item.date))}${item.time ? ' '+escapeHtml(item.time) : ''}）</div>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button class="btn ghost" data-goto-case="${item.caseId}" style="padding:5px 10px; font-size:11.5px;">前往查看</button>
+            <button class="btn" data-ack-reminder="${item.id}" style="padding:5px 10px; font-size:11.5px;">✓ 已處理完成</button>
+          </div>
+        </div>`;
+    }
+    if(item.type === 'watch'){
+      const statusText = item.days < 0 ? `已逾期 ${-item.days} 天` : item.days === 0 ? '就是今天' : `還有 ${item.days} 天`;
+      return `
+        <div style="border:1px solid var(--card-line); border-radius:8px; padding:10px 12px; margin-bottom:8px;">
+          <span class="badge badge-amber" style="margin-bottom:4px;">${escapeHtml(item.kind)}</span>
+          <div style="font-weight:700; font-size:13px; margin-top:4px;">${escapeHtml(item.caseName)}</div>
+          <div style="font-size:12px; color:var(--ink-soft); margin-top:2px;">第${item.reviewNo}次${item.kind==='審查日期'?'審查日期':'審查'+item.kind}：<span style="color:var(--deadline-red); font-weight:700;">${escapeHtml(toROC(item.date))}</span></div>
+          <div style="font-size:12px; font-weight:700; color:var(--deadline-red); margin-top:2px;">${statusText}</div>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button class="btn ghost" data-goto-case="${item.caseId}" style="padding:5px 10px; font-size:11.5px;">前往查看</button>
+            <button class="btn" data-ack-watch-case="${item.caseId}" data-ack-watch-review="${item.reviewNo}" data-ack-watch-date="${item.date}" style="padding:5px 10px; font-size:11.5px;">✓ 已處理完成</button>
+          </div>
+        </div>`;
+    }
+  }).join('');
+  return `
+    <div class="modal-overlay" id="deadlineNoticeOverlay">
+      <div class="modal-box">
+        <div class="modal-title">提醒事項</div>
+        <div class="card-hint" style="margin-bottom:12px;">以下是即將到期／已逾期的審查日期與期限，以及您設定的備註提醒</div>
+        <div id="deadlineNoticeList">${rows}</div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="deadlineNoticeDismissToday">收到，今日不再提醒</button>
+          <button class="btn ghost" id="deadlineNoticeClose">關閉</button>
+        </div>
+      </div>
+    </div>`;
+}
+const DISMISS_TODAY_KEY = 'wst_dismiss_until';
+function checkDeadlineReminders(){
+  const todayStr = todayLocalStr();
+  if(localStorage.getItem(DISMISS_TODAY_KEY) === todayStr){
+    const area0 = document.getElementById('deadlineNoticeArea');
+    if(area0) area0.innerHTML = '';
+    return;
+  }
+  deadlineNoticeList = [...computeDueSoonList(), ...computeReminderNoticeList()];
+  const area = document.getElementById('deadlineNoticeArea');
+  if(!area) return;
+  if(deadlineNoticeList.length === 0){ area.innerHTML=''; return; }
+  area.innerHTML = deadlineNoticeHtml(deadlineNoticeList);
+  bindDeadlineNotice();
+}
+function bindDeadlineNotice(){
+  document.getElementById('deadlineNoticeClose') && document.getElementById('deadlineNoticeClose').addEventListener('click', ()=>{
+    document.getElementById('deadlineNoticeArea').innerHTML = '';
+  });
+  document.getElementById('deadlineNoticeDismissToday') && document.getElementById('deadlineNoticeDismissToday').addEventListener('click', ()=>{
+    const todayStr = todayLocalStr();
+    localStorage.setItem(DISMISS_TODAY_KEY, todayStr);
+    document.getElementById('deadlineNoticeArea').innerHTML = '';
+  });
+  document.querySelectorAll('[data-goto-case]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const caseId = btn.dataset.gotoCase;
+      document.getElementById('deadlineNoticeArea').innerHTML = '';
+      activeTab = 'caseview';
+      caseViewSelectedId = caseId;
+      caseViewDetailTab = "basic";
+      caseDropdownOpen = false;
+      const c = state.cases.find(x=>x.id===caseId);
+      caseViewStatusFilter = c ? c.status : "進行中";
+      render();
+    });
+  });
+  document.querySelectorAll('[data-ack-watch-case]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const caseId = btn.dataset.ackWatchCase;
+      const reviewNo = btn.dataset.ackWatchReview;
+      const date = btn.dataset.ackWatchDate;
+      const p = getProgressForCase(caseId);
+      if(p) p.ackWatch = {reviewNo, date};
+      scheduleSave();
+      deadlineNoticeList = deadlineNoticeList.filter(x => !(x.type==='watch' && x.caseId===caseId && String(x.reviewNo)===String(reviewNo)));
+      const area = document.getElementById('deadlineNoticeArea');
+      if(deadlineNoticeList.length===0){ area.innerHTML=''; } else { area.innerHTML = deadlineNoticeHtml(deadlineNoticeList); bindDeadlineNotice(); }
+      render();
+    });
+  });
+  document.querySelectorAll('[data-ack-reminder]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.ackReminder;
+      const r = getReminders().find(x=>x.id===id);
+      if(r) r.done = true;
+      scheduleSave();
+      deadlineNoticeList = deadlineNoticeList.filter(x => !(x.type==='reminder' && x.id===id));
+      const area = document.getElementById('deadlineNoticeArea');
+      if(deadlineNoticeList.length===0){ area.innerHTML=''; } else { area.innerHTML = deadlineNoticeHtml(deadlineNoticeList); bindDeadlineNotice(); }
+      render();
+    });
+  });
+}
+
+function progressTableHtml(p){
+  if(!p){
+    return `<div class="card-hint" style="margin:0;">尚無資料</div>`;
+  }
+  const extensions = p.extensions || [];
+  const watchInfo = getWatchDateForCase(p);
+  const allRows = [
+    ["掛件", null, p.filingDate, "", "", []],
+    ["第1次審查", 1, p.review1, p.deadline1, p.revise1, extensions.filter(x=>String(x.reviewNo)==="1")],
+    ["第2次審查", 2, p.review2, p.deadline2, p.revise2, extensions.filter(x=>String(x.reviewNo)==="2")],
+    ["第3次審查", 3, p.review3, p.deadline3, p.revise3, extensions.filter(x=>String(x.reviewNo)==="3")],
+    ["檢視本", null, p.viewCopy, "", "", []],
+    ["定稿本", null, p.finalCopy, "", "", []],
+  ];
+  const rows = allRows.filter(([label, reviewNo, date, deadline, revise, exts]) => date || deadline || revise || exts.length);
+  if(rows.length === 0){
+    return `<div class="card-hint" style="margin:0;">尚無資料</div>`;
+  }
+  const body = rows.map(([label, reviewNo, date, deadline, revise, exts])=>{
+    const extText = exts.length
+      ? exts.map(x => `展延${x.date?'：'+escapeHtml(toROC(x.date)):''}${x.newDeadline?' →新期限 '+escapeHtml(toROC(x.newDeadline)):''}`).join('<br>')
+      : '－';
+    // 取展延紀錄中最新（日期最大）的新修正期限，作為目前實際生效的展延期限
+    let latestNewDeadline = '';
+    exts.forEach(x=>{
+      if(x.newDeadline && x.newDeadline > latestNewDeadline) latestNewDeadline = x.newDeadline;
+    });
+    const extDeadlineCell = latestNewDeadline
+      ? `<span style="color:var(--deadline-red); font-weight:700;">${escapeHtml(toROC(latestNewDeadline))}</span>`
+      : '－';
+    const isWatchedReview = watchInfo && reviewNo!=null && String(watchInfo.reviewNo)===String(reviewNo);
+    const dateIsWatched = isWatchedReview && watchInfo.kind === '審查日期';
+    const deadlineIsWatched = isWatchedReview && watchInfo.kind === '修正期限';
+    const dateCell = date ? (dateIsWatched ? `<span style="color:var(--deadline-red); font-weight:700;">${escapeHtml(toROC(date))}</span>` : escapeHtml(toROC(date))) : '－';
+    const deadlineCell = deadline ? (deadlineIsWatched ? `<span style="color:var(--deadline-red); font-weight:700;">${escapeHtml(toROC(deadline))}</span>` : escapeHtml(toROC(deadline))) : '－';
+    const reviseCell = revise ? `<span style="color:var(--moss); font-weight:700;">${escapeHtml(toROC(revise))}</span>` : '－';
+    return `<tr>
+      <td class="readonly">${label}</td>
+      <td class="readonly" style="white-space:nowrap;">${dateCell}</td>
+      <td class="readonly" style="white-space:nowrap;">${deadlineCell}</td>
+      <td class="readonly" style="white-space:nowrap;">${reviseCell}</td>
+      <td class="readonly" style="white-space:nowrap;">${extDeadlineCell}</td>
+      <td class="readonly">${extText}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="tbl-scroll"><table>
+    <thead><tr><th>階段</th><th>日期</th><th>修正期限</th><th>修正本提送</th><th>展延期限</th><th>展延紀錄</th></tr></thead>
+    <tbody>${body}</tbody>
+  </table></div>`;
+}
+
+/* ---- 聯絡窗口：卡片 + 跳出視窗 ---- */
+function blankContact(caseId){
+  return {id:uid(), caseId, type:"業主", org:"", name:"", hasPhone:true, phone:"", hasLine:false, lineId:"", email:"", address:"", committeeMembers:[]};
+}
+function contactBadgeClass(type){
+  return type==="業主" ? "badge-moss" : type==="建築師" ? "badge-teal" : type==="鑽探公司" ? "badge-amber" : type==="審查單位" ? "badge-clay" : "badge-grey";
+}
+function contactCardHtml(x){
+  const lines = [];
+  if(x.org) lines.push(`<div>${escapeHtml(x.org)}</div>`);
+  if(x.name) lines.push(`<div>${escapeHtml(x.name)}</div>`);
+  if(x.hasPhone && x.phone) lines.push(`<div style="color:var(--ink-soft); font-size:11.5px;">☎ 電話：${escapeHtml(x.phone)}</div>`);
+  if(x.hasLine && x.lineId) lines.push(`<div style="color:var(--ink-soft); font-size:11.5px;"><span class="line-badge">LINE</span> ${escapeHtml(x.lineId)}</div>`);
+  if(x.email) lines.push(`<div style="color:var(--ink-soft); font-size:11.5px;">Email：${escapeHtml(x.email)}</div>`);
+  if(x.address) lines.push(`<div style="color:var(--ink-soft); font-size:11.5px;">地址：${escapeHtml(x.address)}</div>`);
+  if(x.type==="審查單位" && (x.committeeMembers||[]).length){
+    const memberLines = x.committeeMembers.map(m=>{
+      const parts = [m.name].filter(Boolean).map(escapeHtml).join('');
+      const sub = [
+        m.phone ? '電話：'+escapeHtml(m.phone) : '',
+        m.email ? 'Email：'+escapeHtml(m.email) : '',
+        m.address ? '地址：'+escapeHtml(m.address) : ''
+      ].filter(Boolean).join('　');
+      return `<div style="margin-top:2px;">・${parts || '（未填姓名）'}${sub ? `<div style="padding-left:12px; color:var(--grey); font-size:10.5px;">${sub}</div>` : ''}</div>`;
+    }).join('');
+    lines.push(`<div style="color:var(--ink-soft); font-size:11.5px; margin-top:4px;">審查委員：${memberLines}</div>`);
+  }
+  return `
+    <div style="border:1px solid var(--card-line); border-radius:8px; padding:12px; margin-bottom:10px; background:var(--card);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+        <span class="badge ${contactBadgeClass(x.type)}">${escapeHtml(x.type||'其他')}</span>
+        <div style="display:flex; gap:6px;">
+          <button class="btn ghost" data-contact-edit="${x.id}" style="padding:4px 10px; font-size:11.5px;">編輯</button>
+          <button class="rowdel" data-del="contacts" data-id="${x.id}" title="刪除">✕</button>
+        </div>
+      </div>
+      <div style="margin-top:8px; font-size:13px; line-height:1.6;">
+        ${lines.join('') || '<span class="card-hint" style="margin:0;">尚未填寫資料</span>'}
+      </div>
+    </div>`;
+}
+function contactModalHtml(c){
+  const x = contactDraft;
+  const isCommittee = x.type === "審查單位";
+  const memberRows = (x.committeeMembers||[]).map(m=>`
+    <div class="modal-ext-row" data-member-id="${m.id}" style="flex-wrap:wrap; border:1px solid var(--card-line); border-radius:6px; padding:8px; margin-bottom:6px; justify-content:flex-start;">
+      <div style="flex:1 1 45%; min-width:140px;">
+        <label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">姓名</label>
+        <input type="text" class="cm-member-name" data-member-id="${m.id}" value="${escapeHtml(m.name||'')}">
+      </div>
+      <div style="flex:1 1 45%; min-width:140px;">
+        <label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">聯絡電話</label>
+        <input type="text" class="cm-member-phone" data-member-id="${m.id}" value="${escapeHtml(m.phone||'')}">
+      </div>
+      <div style="flex:1 1 45%; min-width:140px;">
+        <label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">Email</label>
+        <input type="text" class="cm-member-email" data-member-id="${m.id}" value="${escapeHtml(m.email||'')}">
+      </div>
+      <div style="flex:1 1 45%; min-width:140px;">
+        <label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">地址</label>
+        <input type="text" class="cm-member-address" data-member-id="${m.id}" value="${escapeHtml(m.address||'')}">
+      </div>
+      <button class="rowdel" data-member-del="${m.id}" title="刪除此委員" style="margin-left:auto; align-self:flex-start;">✕</button>
+    </div>`).join('');
+  return `
+    <div class="modal-overlay" id="contactModalOverlay">
+      <div class="modal-box">
+        <div class="modal-title">聯絡窗口</div>
+        <div class="modal-row">
+          <label>類型</label>
+          <select id="cm_type">${selectOptions(CONTACT_TYPES, x.type)}</select>
+        </div>
+        <div class="modal-row">
+          <label>單位</label>
+          ${isCommittee
+            ? `<input type="text" id="cm_org" list="reviewAgencyDatalist" placeholder="可從選單挑選，或直接輸入新單位名稱" value="${escapeHtml(x.org||'')}">
+               <datalist id="reviewAgencyDatalist">${getReviewAgencyOptions().map(name=>`<option value="${escapeHtml(name)}"></option>`).join('')}</datalist>`
+            : `<input type="text" id="cm_org" value="${escapeHtml(x.org||'')}">`}
+        </div>
+        <div class="modal-row">
+          <label>窗口姓名</label>
+          <input type="text" id="cm_name" value="${escapeHtml(x.name||'')}">
+        </div>
+        <div class="modal-row">
+          <label>聯絡方式</label>
+          <div style="display:flex; gap:16px; margin-bottom:8px;">
+            <label style="display:flex; align-items:center; gap:5px; font-size:12.5px; color:var(--ink); margin:0;">
+              <input type="checkbox" id="cm_hasPhone" style="width:auto;" ${x.hasPhone?'checked':''}> ☎ 電話
+            </label>
+            <label style="display:flex; align-items:center; gap:5px; font-size:12.5px; color:var(--ink); margin:0;">
+              <input type="checkbox" id="cm_hasLine" style="width:auto;" ${x.hasLine?'checked':''}> <span class="line-badge">LINE</span>
+            </label>
+          </div>
+          <div id="cm_phoneWrap" style="${x.hasPhone?'':'display:none;'} margin-bottom:8px;">
+            <label>電話號碼</label>
+            <input type="text" id="cm_phone" value="${escapeHtml(x.phone||'')}">
+          </div>
+          <div id="cm_lineWrap" style="${x.hasLine?'':'display:none;'}">
+            <label>LINE ID／暱稱</label>
+            <input type="text" id="cm_lineId" value="${escapeHtml(x.lineId||'')}">
+          </div>
+        </div>
+        <div class="modal-row">
+          <label>郵件信箱</label>
+          <input type="text" id="cm_email" value="${escapeHtml(x.email||'')}">
+        </div>
+        <div class="modal-row">
+          <label>地址</label>
+          <input type="text" id="cm_address" value="${escapeHtml(x.address||'')}">
+        </div>
+        ${isCommittee ? `
+        <div class="modal-row">
+          <label>審查委員名單</label>
+          <div id="cmMemberList">${memberRows || '<div class="card-hint" style="margin:0 0 6px;">尚無委員資料</div>'}</div>
+          <button class="btn ghost" id="cmAddMember" style="margin-top:4px;">＋ 新增委員</button>
+        </div>` : ''}
+        <div class="modal-actions">
+          <button class="btn ghost" id="cmCancel">取消</button>
+          <button class="btn" id="cmSave">儲存</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function progressModalHtml(c){
+  const p = progressDraft;
+  const n = progressModalReviewTab; // "1" | "2" | "3" | "view" | "final"
+  const isReview = (n==="1"||n==="2"||n==="3");
+  const extRowsForN = isReview ? (p.extensions||[]).filter(x => String(x.reviewNo) === n).map(x=>`
+    <div class="modal-ext-row" data-ext-id="${x.id}" style="justify-content:space-between;">
+      <div>
+        <label style="font-size:10.5px; color:var(--ink-soft); margin:0;">展延公文日期</label>
+        <input type="date" class="pm-ext-date" data-ext-id="${x.id}" value="${x.date||''}" style="width:140px;">
+      </div>
+      <div>
+        <label style="font-size:10.5px; color:var(--ink-soft); margin:0;">展延後新修正期限</label>
+        <input type="date" class="pm-ext-newdeadline" data-ext-id="${x.id}" value="${x.newDeadline||''}" style="width:140px;">
+      </div>
+      <button class="rowdel" data-ext-del="${x.id}" title="刪除此筆展延">✕</button>
+    </div>`).join('') : '';
+
+  const tabDefs = [["1","第1次"],["2","第2次"],["3","第3次"],["view","檢視本"],["final","定稿本"]];
+  const tabs = tabDefs.map(([v,label])=>`
+    <button type="button" class="tab pm-review-tab ${v===n?'active':''}" data-review-tab="${v}" style="border-radius:6px; transform:none; padding:7px 12px;">
+      <span class="idx">${label}</span>
+    </button>`).join('');
+
+  let tabContent = '';
+  if(isReview){
+    tabContent = `
+      <label>第${n}次審查日期</label>
+      <input type="date" id="pm_review${n}" value="${p['review'+n]||''}">
+      <label style="margin-top:8px;">第${n}次審查後修正期限</label>
+      <input type="date" id="pm_deadline${n}" value="${p['deadline'+n]||''}">
+      <label style="margin-top:10px;">展延紀錄（可新增多筆）</label>
+      <div id="pmExtList">${extRowsForN || '<div class="card-hint" style="margin:0 0 6px;">此次審查尚無展延紀錄</div>'}</div>
+      <button class="btn ghost" id="pmAddExt" style="margin-top:4px;">＋ 新增第${n}次審查的展延</button>
+      <label style="margin-top:14px; display:block; border-top:1px dashed var(--card-line); padding-top:12px;">第${n}次審查修正本提送日期</label>
+      <input type="date" id="pm_revise${n}" value="${p['revise'+n]||''}">`;
+  } else if(n === "view"){
+    tabContent = `
+      <label>檢視本日期</label>
+      <input type="date" id="pm_viewCopy" value="${p.viewCopy||''}">`;
+  } else if(n === "final"){
+    tabContent = `
+      <label>定稿本日期</label>
+      <input type="date" id="pm_finalCopy" value="${p.finalCopy||''}">`;
+  }
+
+  return `
+    <div class="modal-overlay" id="progressModalOverlay">
+      <div class="modal-box">
+        <div class="modal-title">設定工作進度</div>
+
+        <div class="modal-row">
+          <label>掛件日期</label>
+          <input type="date" id="pm_filingDate" value="${p.filingDate||''}">
+        </div>
+
+        <div class="modal-row">
+          <label>階段</label>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">${tabs}</div>
+        </div>
+
+        <div class="modal-row" style="background:#F4F6F2; border-radius:8px; padding:12px;">
+          ${tabContent}
+        </div>
+
+        <div class="modal-row">
+          <label>備註</label>
+          <input type="text" id="pm_note" value="${escapeHtml(p.note||'')}">
+        </div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="pmCancel">取消</button>
+          <button class="btn" id="pmSave">儲存</button>
+        </div>
+      </div>
+    </div>`;
+}
+/* ============ Tabs ============ */
+const BASE_TABS = [
+  {key:"cases", idx:"01", label:"結案總表"},
+  {key:"progressOverview", idx:"02", label:"進度總覽(執行中/暫停)"},
+  {key:"caseview", idx:"03", label:"各案總覽"},
+];
+function getTabs(){
+  const tabs = BASE_TABS.slice();
+  if(getSettings().bonusEnabled){
+    tabs.push({key:"bonusKpi", idx:"04", label:"結案獎金"});
+  }
+  return tabs;
+}
+let caseViewSelectedId = null;
+let caseViewStatusFilter = "進行中";
+let caseViewSearchKeyword = "";
+let caseViewDetailTab = "basic";
+const CASE_DETAIL_SECTIONS = [
+  {key:"basic", label:"基本資料"},
+  {key:"materials", label:"水保所需資料"},
+  {key:"progress", label:"工作進度"},
+  {key:"reminders", label:"備註提醒"},
+  {key:"contacts", label:"聯絡窗口"},
+];
+function caseViewDetailTabsHtml(){
+  return `<div class="cv-detail-tabs">
+    ${CASE_DETAIL_SECTIONS.map(s=>`<button type="button" class="btn ${caseViewDetailTab===s.key?'':'ghost'}" data-detail-tab="${s.key}">${s.label}</button>`).join('')}
+  </div>`;
+}
+let closedTypeFilter = "總覽";
+let closedCategoryFilter = "總覽";
+let closedYearFilter = "總覽";
+let progressModalOpen = false;
+let progressDraft = null;
+let progressModalReviewTab = "1";
+let contactModalOpen = false;
+let contactDraft = null;
+let materialsModalOpen = false;
+let materialsDraft = null;
+let remindersModalOpen = false;
+let remindersDraft = null;
+let basicModalOpen = false;
+let basicDraft = null;
+
+function renderTabs(){
+  const el = document.getElementById('tabs');
+  const tabs = getTabs();
+  if(!tabs.find(t=>t.key===activeTab)) activeTab = "cases";
+  el.innerHTML = tabs.map(t=>`
+    <button class="tab ${t.key===activeTab?'active':''}" data-tab="${t.key}">
+      <span class="idx">${t.idx}</span>${t.label}
+    </button>`).join('');
+  [...el.querySelectorAll('.tab')].forEach(b=>{
+    b.addEventListener('click', ()=>{ activeTab = b.dataset.tab; render(); });
+  });
+}
+
+/* ============ 各分頁渲染 ============ */
+function render(){
+  renderTabs();
+  const area = document.getElementById('cardArea');
+  if(activeTab==="cases") area.innerHTML = casesView();
+  else if(activeTab==="progressOverview") area.innerHTML = progressOverviewView();
+  else if(activeTab==="caseview") area.innerHTML = caseView();
+  else if(activeTab==="bonusKpi") area.innerHTML = bonusKpiView();
+  bindEvents();
+}
+
+/* ---- 01 結案總表 ---- */
+function caseRowHtml(c, i){
+  const repLine = c.rep ? `<div style="font-size:11px; color:var(--ink-soft); white-space:nowrap; margin-top:2px;">${escapeHtml(c.rep)}</div>` : '';
+  return `
+    <tr>
+      <td class="readonly computed" style="text-align:center;">${i+1}</td>
+      <td class="readonly" style="white-space:normal;">${formatCaseNameHtml(c.name)}</td>
+      <td class="readonly" style="white-space:nowrap;">${escapeHtml(c.client)}${repLine}</td>
+      <td class="readonly">${rulerHtml(c.id)}</td>
+      <td class="readonly"><span class="badge ${badgeClassCaseStatus(c.status)}">${c.status}</span></td>
+      <td class="readonly" style="white-space:normal;">${escapeHtml(c.note)}</td>
+    </tr>`;
+}
+
+function caseRowHtmlClosed(c, i){
+  const repLine = c.rep ? `<div style="font-size:11px; color:var(--ink-soft); white-space:nowrap; margin-top:2px;">${escapeHtml(c.rep)}</div>` : '';
+  return `
+    <tr>
+      <td class="readonly computed" style="text-align:center;">${i+1}</td>
+      <td class="readonly" style="white-space:normal;">${formatCaseNameHtml(c.name)}</td>
+      <td class="readonly" style="white-space:nowrap;">${escapeHtml(c.client)}${repLine}</td>
+      <td class="readonly" style="white-space:nowrap;">${escapeHtml(c.caseType || '未分類')}</td>
+      <td class="readonly" style="white-space:nowrap;">${escapeHtml(c.category || '未分類')}</td>
+      <td class="readonly" style="white-space:nowrap;">${escapeHtml(c.actualClose||'')}</td>
+      <td class="readonly" style="white-space:nowrap;">${escapeHtml(c.docNo||'')}</td>
+    </tr>`;
+}
+
+function caseGroupTable(list, emptyMsg){
+  const rows = list.map((c,i)=>caseRowHtml(c,i)).join('');
+  return `
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th style="width:44px;">編號</th><th style="min-width:320px;">案名</th><th>委託單位</th><th>目前工作進度</th>
+        <th>狀態</th><th>備註</th>
+      </tr></thead>
+      <tbody>${rows || `<tr><td colspan="6" class="empty">${emptyMsg}</td></tr>`}</tbody>
+    </table></div>`;
+}
+
+function getAvailableClosedYears(){
+  const years = new Set();
+  state.cases.forEach(c=>{
+    if(c.status==="已結案" && c.actualClose) years.add(c.actualClose.slice(0,4));
+  });
+  return Array.from(years).sort((a,b)=> b.localeCompare(a));
+}
+function caseGroupTableClosed(list, emptyMsg){
+  const rows = list.map((c,i)=>caseRowHtmlClosed(c,i)).join('');
+  const typeOptions = ["總覽", ...CASE_TYPES].map(t=>`<option value="${t}" ${t===closedTypeFilter?'selected':''}>${t}</option>`).join('');
+  const categoryOptions = ["總覽", ...getCategoryOptions()].map(t=>`<option value="${t}" ${t===closedCategoryFilter?'selected':''}>${t}</option>`).join('');
+  const yearOptions = ["總覽", ...getAvailableClosedYears()].map(y=>`<option value="${y}" ${y===closedYearFilter?'selected':''}>${y}</option>`).join('');
+  return `
+    <div style="margin-bottom:10px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+      <span style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+        <label style="font-size:11.5px; color:var(--ink-soft); font-family:'Noto Serif TC', serif; white-space:nowrap;">案件類型</label>
+        <select id="closedTypeFilter" style="max-width:280px;">${typeOptions}</select>
+      </span>
+      <span style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+        <label style="font-size:11.5px; color:var(--ink-soft); font-family:'Noto Serif TC', serif; white-space:nowrap;">案件分類</label>
+        <select id="closedCategoryFilter" style="max-width:280px;">${categoryOptions}</select>
+      </span>
+      <span style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+        <label style="font-size:11.5px; color:var(--ink-soft); font-family:'Noto Serif TC', serif; white-space:nowrap;">結案年度</label>
+        <select id="closedYearFilter" style="max-width:180px;">${yearOptions}</select>
+      </span>
+    </div>
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th style="width:44px;">編號</th><th style="min-width:320px;">案名</th><th>委託單位</th><th>案件類型</th><th>案件分類</th>
+        <th>核定日期</th><th>核定文號</th>
+      </tr></thead>
+      <tbody>${rows || `<tr><td colspan="7" class="empty">${emptyMsg}</td></tr>`}</tbody>
+    </table></div>`;
+}
+
+function casesView(){
+  let closed = state.cases.filter(c => c.status === "已結案");
+  const closedTotal = closed.length;
+  if(closedTypeFilter !== "總覽"){
+    closed = closed.filter(c => c.caseType === closedTypeFilter);
+  }
+  if(closedCategoryFilter !== "總覽"){
+    closed = closed.filter(c => c.category === closedCategoryFilter);
+  }
+  if(closedYearFilter !== "總覽"){
+    closed = closed.filter(c => c.actualClose && c.actualClose.slice(0,4) === closedYearFilter);
+  }
+
+  const isYenchin = currentUserCode === "彥瑾";
+  return `
+    <div class="card-top">
+      <div><div class="card-title">結案總表</div></div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        ${isYenchin ? `<span id="importStatus" class="card-hint" style="margin:0;"></span><button class="btn ghost" id="importYenchin">⇪ 匯入彥瑾歷史案件（58筆）</button>` : ''}
+      </div>
+    </div>
+
+    <div class="cv-section" style="margin-top:0; padding-top:0; border-top:none;">
+      <div class="cv-section-head"><span class="cv-section-title">已結案（${closed.length} / 共${closedTotal}）</span></div>
+      ${caseGroupTableClosed(closed, "此分類尚無已結案案件")}
+    </div>`;
+}
+
+/* ---- 02 進度總覽(執行中/暫停) ---- */
+function progressCardHtml(c){
+  const p = getProgressForCase(c.id);
+  const clientLine = c.client ? `<div class="card-hint" style="margin:0 0 8px;">${escapeHtml(c.client)}${c.rep ? '（代表人：'+escapeHtml(c.rep)+'）' : ''}</div>` : '';
+  return `
+    <div class="cv-section" style="margin-top:16px; padding-top:16px;">
+      <div class="cv-section-head"><span class="cv-section-title" style="text-transform:none; color:var(--ink); font-family:'Noto Serif TC', serif; font-size:14px; font-weight:700;">${formatCaseNameHtml(c.name)}</span></div>
+      ${clientLine}
+      ${progressBarHtml(p)}
+    </div>`;
+}
+/* PDF匯出專用，進度條改用 progressBarHtmlForPdf，其餘（案名/委託單位）跟畫面上一致 */
+function progressCardHtmlForPdf(c){
+  const p = getProgressForCase(c.id);
+  const clientLine = c.client ? `<div class="card-hint" style="margin:0 0 8px;">${escapeHtml(c.client)}${c.rep ? '（代表人：'+escapeHtml(c.rep)+'）' : ''}</div>` : '';
+  return `
+    <div class="cv-section" style="margin-top:16px; padding-top:16px;">
+      <div class="cv-section-head"><span class="cv-section-title" style="text-transform:none; color:var(--ink); font-family:'Noto Serif TC', serif; font-size:14px; font-weight:700;">${formatCaseNameHtml(c.name)}</span></div>
+      ${clientLine}
+      ${progressBarHtmlForPdf(p)}
+    </div>`;
+}
+function progressOverviewView(){
+  const ongoing = state.cases.filter(c => c.status === "進行中");
+  const paused = state.cases.filter(c => c.status === "暫停");
+  if(ongoing.length === 0 && paused.length === 0){
+    return `
+      <div class="card-top">
+        <div><div class="card-title">進度總覽(執行中/暫停)</div><div class="card-hint">一次看完所有執行中／暫停案件的工作進度，不用逐一點進各案總覽</div></div>
+      </div>
+      <div class="empty">目前沒有執行中或暫停的案件</div>`;
+  }
+  const ongoingCards = ongoing.map(c=>progressCardHtml(c)).join('');
+  const pausedCards = paused.map(c=>progressCardHtml(c)).join('');
+  return `
+    <div class="card-top">
+      <div><div class="card-title">進度總覽(執行中/暫停)</div><div class="card-hint">執行中 ${ongoing.length} 件・暫停 ${paused.length} 件</div></div>
+    </div>
+    <div class="cv-section" style="margin-top:0; padding-top:0; border-top:none;">
+      <div class="cv-section-head"><span class="cv-section-title">執行中（${ongoing.length}）</span></div>
+      ${caseGroupTable(ongoing, "尚無執行中案件，請到「各案總覽」新增")}
+      ${ongoingCards}
+    </div>
+    ${paused.length ? `
+    <div class="cv-section">
+      <div class="cv-section-head"><span class="cv-section-title">暫停中（${paused.length}）</span></div>
+      ${caseGroupTable(paused, "尚無暫停中案件")}
+      ${pausedCards}
+    </div>` : ''}
+    <div class="legend">
+      <span><span class="sw" style="background:var(--amber-soft)"></span>執行中</span>
+      <span><span class="sw" style="background:var(--grey-soft)"></span>暫停</span>
+      <span>·「目前工作進度」來自「各案總覽」的工作進度紀錄</span>
+    </div>`;
+}
+
+/* ---- 04 結案獎金 ---- */
+let bonusKpiYear = null;
+function getAvailableBonusYears(){
+  const years = new Set();
+  state.cases.forEach(c=>{
+    if(parseFloat(c.serviceFee) > 0 && c.paymentDate){
+      years.add(c.paymentDate.slice(0,4));
+    }
+  });
+  if(years.size === 0){
+    years.add(String(new Date().getFullYear()));
+  }
+  return Array.from(years).sort((a,b)=> b.localeCompare(a));
+}
+function bonusKpiView(){
+  const years = getAvailableBonusYears();
+  if(!bonusKpiYear || !(years.includes(bonusKpiYear) || bonusKpiYear === '總覽')) bonusKpiYear = years[0];
+  const isOverview = bonusKpiYear === '總覽';
+
+  const paidThisYear = state.cases
+    .filter(c=> parseFloat(c.serviceFee) > 0 && c.paymentDate && (isOverview || c.paymentDate.slice(0,4)===bonusKpiYear))
+    .slice()
+    .sort((a,b)=> (a.approvalDraftDate||'').localeCompare(b.approvalDraftDate||''));
+
+  let totalFee = 0;
+  const rows = paidThisYear.map((c,i)=>{
+    const fee = parseFloat(c.serviceFee) || 0;
+    totalFee += fee;
+    const bonus = fee * 0.04;
+    return `<tr>
+      <td class="readonly computed" style="text-align:center;">${i+1}</td>
+      <td class="readonly" style="white-space:normal;">${formatCaseNameHtml(c.name)}</td>
+      <td class="readonly" style="white-space:nowrap;">${escapeHtml(c.caseType||'')}</td>
+      <td class="readonly" style="white-space:nowrap;">${escapeHtml(c.approvalDraftDate||'')}</td>
+      <td class="readonly" style="white-space:nowrap;">${escapeHtml(c.paymentDate||'')}</td>
+      <td class="readonly" style="white-space:nowrap; text-align:right;">${fee ? fee.toLocaleString() : '－'}</td>
+      <td class="readonly" style="white-space:nowrap; text-align:right;">${fee ? bonus.toLocaleString(undefined,{maximumFractionDigits:0}) : '－'}</td>
+    </tr>`;
+  }).join('');
+  const totalBonus = totalFee * 0.04;
+
+  // 依「匯款月份」加總老闆每個月實際匯了多少獎金
+  const monthlyMap = {};
+  paidThisYear.forEach(c=>{
+    const month = c.paymentDate.slice(0,7); // YYYY-MM
+    const bonus = (parseFloat(c.serviceFee) || 0) * 0.04;
+    monthlyMap[month] = (monthlyMap[month] || 0) + bonus;
+  });
+  const monthKeys = Object.keys(monthlyMap).sort();
+  const monthlyRows = monthKeys.map(m=>`<tr>
+    <td class="readonly">${m}</td>
+    <td class="readonly" style="text-align:right;">${monthlyMap[m].toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+  </tr>`).join('');
+
+  // 已結案、有服務費，但尚未填匯款時間的案子，列出來提醒
+  const unpaid = state.cases.filter(c=> c.status==="已結案" && parseFloat(c.serviceFee) > 0 && !c.paymentDate);
+  const unpaidRows = unpaid.map(c=>`<tr>
+    <td class="readonly" style="white-space:normal;">${formatCaseNameHtml(c.name)}</td>
+    <td class="readonly" style="white-space:nowrap;">${escapeHtml(c.approvalDraftDate||'')}</td>
+    <td class="readonly" style="white-space:nowrap; text-align:right;">${(parseFloat(c.serviceFee)||0).toLocaleString()}</td>
+  </tr>`).join('');
+
+  const yearOptions = `<option value="總覽" ${isOverview?'selected':''}>總覽</option>` + years.map(y=>`<option value="${y}" ${y===bonusKpiYear?'selected':''}>${y}</option>`).join('');
+
+  const salary = parseFloat(getYearSalary(bonusKpiYear)) || 0;
+  const kpiTarget = salary * 36;
+  const completionRate = kpiTarget > 0 ? (totalFee / kpiTarget * 100) : 0;
+  const sectionLabel = isOverview ? '總覽' : `${bonusKpiYear} 年度`;
+
+  return `
+    <div class="card-top">
+      <div><div class="card-title">結案獎金</div></div>
+      <div class="cv-picker">
+        <label style="font-size:11.5px; color:var(--ink-soft); white-space:nowrap;">年度</label>
+        <select id="bonusYearSelect">${yearOptions}</select>
+      </div>
+    </div>
+
+    ${isOverview ? '' : `
+    <div class="cv-section" style="margin-top:0; padding-top:0; border-top:none;">
+      <div class="cv-section-head"><span class="cv-section-title">${sectionLabel}目標</span></div>
+      <div class="cv-formgrid">
+        <div class="cv-field"><label>${bonusKpiYear}年 月薪（元）</label><input type="text" inputmode="numeric" id="bonusSalaryInput" value="${formatMoneyDisplay(getYearSalary(bonusKpiYear))}" placeholder="請輸入該年度月薪"></div>
+        <div class="cv-field"><label>年度目標（元＝月薪×36）</label><input type="text" value="${kpiTarget ? kpiTarget.toLocaleString() : '－'}" readonly></div>
+        <div class="cv-field"><label>本年度已匯款服務費總額（元）</label><input type="text" value="${totalFee.toLocaleString()}" readonly></div>
+        <div class="cv-field"><label>完成率</label><input type="text" value="${kpiTarget ? completionRate.toFixed(1)+'%' : '尚未設定月薪'}" readonly style="font-weight:700; color:${completionRate>=100?'var(--moss)':'var(--amber)'};"></div>
+      </div>
+      ${kpiTarget ? `
+      <div style="margin-top:14px;">
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--ink-soft); margin-bottom:4px;">
+          <span>完成進度</span>
+          <span style="font-weight:700; color:${completionRate>=100?'var(--moss)':'var(--amber)'};">${completionRate.toFixed(1)}%</span>
+        </div>
+        <div style="background:var(--grey-soft); border-radius:999px; height:16px; overflow:hidden; border:1px solid var(--card-line);">
+          <div style="width:${Math.min(completionRate,100)}%; height:100%; background:${completionRate>=100?'var(--moss)':'var(--amber)'}; border-radius:999px; transition:width .3s;"></div>
+        </div>
+      </div>` : ''}
+      <div class="card-hint" style="margin-top:8px;">月薪依年度個別設定，因為每年薪資可能不同</div>
+    </div>`}
+
+    <div class="cv-section" ${isOverview ? 'style="margin-top:0; padding-top:0; border-top:none;"' : ''}>
+      <div class="cv-section-head"><span class="cv-section-title">${sectionLabel}已匯款獎金明細（依核定本日期排序，舊到新）</span></div>
+      <div class="tbl-scroll"><table>
+        <thead><tr><th>編號</th><th>案名</th><th>案件類型</th><th>核定本日期</th><th>匯款時間</th><th style="text-align:right;">服務費（元）</th><th style="text-align:right;">結案獎金（元）</th></tr></thead>
+        <tbody>${rows || `<tr><td colspan="7" class="empty">尚無已匯款的案子</td></tr>`}</tbody>
+        <tfoot><tr>
+          <td class="readonly" colspan="2">${isOverview ? '總計' : '年度結案獎金總計'}</td><td class="readonly"></td><td class="readonly"></td><td class="readonly"></td>
+          <td class="readonly" style="text-align:right;">${totalFee.toLocaleString()}</td>
+          <td class="readonly" style="text-align:right; color:var(--moss);">${totalBonus.toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+        </tr></tfoot>
+      </table></div>
+          </div>
+
+    <div class="cv-section">
+      <div class="cv-section-head"><span class="cv-section-title">${sectionLabel}每月匯款總表</span></div>
+      <div class="tbl-scroll"><table>
+        <thead><tr><th>月份</th><th style="text-align:right;">匯款金額（元）</th></tr></thead>
+        <tbody>${monthlyRows || `<tr><td colspan="2" class="empty">尚無匯款紀錄</td></tr>`}</tbody>
+      </table></div>
+    </div>
+
+    ${(!isOverview && unpaid.length) ? `
+    <div class="cv-section">
+      <div class="cv-section-head"><span class="cv-section-title">尚未填匯款時間（${unpaid.length}）</span></div>
+      <div class="card-hint" style="margin-bottom:8px;">以下案子已結案、有填服務費，但還沒登記匯款時間，記得請老闆匯款後回來補上</div>
+      <div class="tbl-scroll"><table>
+        <thead><tr><th>案名</th><th>核定本日期</th><th style="text-align:right;">服務費（元）</th></tr></thead>
+        <tbody>${unpaidRows}</tbody>
+      </table></div>
+    </div>` : ''}`;
+}
+
+/* ---- 03 各案總覽：一案一頁 ---- */
+let caseDropdownOpen = false;
+function caseDropdownHtml(list, selectedId){
+  const selectedCase = state.cases.find(c=>c.id===selectedId);
+  const label = selectedCase ? (selectedCase.name || '（未命名案件）') : (list.length ? '請選擇案件' : '（此分類尚無符合條件的案件）');
+  const items = list.length
+    ? list.map(c=>`<div class="cv-dropdown-item ${c.id===selectedId?'selected':''}" data-case-id="${c.id}">${escapeHtml(c.name)||'（未命名案件）'}</div>`).join('')
+    : `<div class="cv-dropdown-empty">此分類尚無符合條件的案件</div>`;
+  return `
+    <div class="cv-dropdown" id="cvCaseDropdown">
+      <button type="button" class="cv-dropdown-toggle" id="cvCaseDropdownToggle">
+        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(label)}</span>
+        <span style="flex-shrink:0; color:var(--ink-soft);">▾</span>
+      </button>
+      ${caseDropdownOpen ? `<div class="cv-dropdown-panel" id="cvCaseDropdownPanel">${items}</div>` : ''}
+    </div>`;
+}
+
+function caseView(){
+  if(state.cases.length===0){
+    return `
+      <div class="card-top">
+        <div><div class="card-title">各案總覽</div></div>
+        <button class="btn" id="cvAddCase">＋ 新增案件</button>
+      </div>
+      <div class="empty">尚無案件，點右上角「＋ 新增案件」直接建立</div>`;
+  }
+  // 狀態篩選（決定目前顯示哪個案件）與關鍵字搜尋（只影響下拉選單的選項）分開處理，
+  // 這樣打關鍵字時目前顯示的案件內容不會一直跳來跳去
+  const statusFiltered = state.cases
+    .filter(c => c.status === caseViewStatusFilter)
+    .slice()
+    .sort((a,b) => caseViewStatusFilter==="已結案"
+      ? (b.actualClose||'').localeCompare(a.actualClose||'')
+      : (b.updatedAt||0) - (a.updatedAt||0));
+  if(!caseViewSelectedId || !statusFiltered.find(c=>c.id===caseViewSelectedId)){
+    caseViewSelectedId = statusFiltered.length ? statusFiltered[0].id : null;
+  }
+  // 執行中／暫停案件數量通常不多，搜尋框只在「已結案」時顯示
+  const searchEnabled = caseViewStatusFilter === "已結案";
+  const kw = searchEnabled ? caseViewSearchKeyword.trim().toLowerCase() : "";
+  const kwChars = kw ? Array.from(new Set(kw.replace(/\s+/g,'').split(''))) : [];
+  const dropdownList = kwChars.length
+    ? statusFiltered.filter(c=>{
+        const target = (c.name||'').toLowerCase();
+        return kwChars.every(ch => target.includes(ch));
+      })
+    : statusFiltered;
+  const searchBoxHtml = searchEnabled
+    ? `<input type="text" id="cvSearchInput" class="cv-search-input" placeholder="搜尋案名關鍵字" value="${escapeHtml(caseViewSearchKeyword)}">`
+    : '';
+  if(!caseViewSelectedId){
+    return `
+      <div class="card-top">
+        <div>
+          <div class="card-title">各案總覽</div>
+        </div>
+        <div class="cv-picker-stack">
+          <select id="cvStatusFilter">
+            <option value="進行中" ${caseViewStatusFilter==="進行中"?'selected':''}>執行中</option>
+            <option value="暫停" ${caseViewStatusFilter==="暫停"?'selected':''}>暫停</option>
+            <option value="已結案" ${caseViewStatusFilter==="已結案"?'selected':''}>已結案</option>
+          </select>
+          ${searchBoxHtml}
+          ${caseDropdownHtml(dropdownList, null)}
+          <button class="btn" id="cvAddCase">＋ 新增案件</button>
+        </div>
+      </div>
+      <div class="empty">此分類尚無案件</div>`;
+  }
+  const c = state.cases.find(x=>x.id===caseViewSelectedId);
+  const myContacts = state.contacts.filter(x=>x.caseId===c.id)
+    .slice()
+    .sort((a,b) => CONTACT_TYPE_ORDER.indexOf(a.type) - CONTACT_TYPE_ORDER.indexOf(b.type));
+  const myProgressRec = getProgressForCase(c.id);
+  const myMaterials = getMaterialsChecklist(c);
+  const myReminders = getRemindersForCase(c.id).slice().sort((a,b)=> (a.date||'9999').localeCompare(b.date||'9999'));
+
+  const contactCards = myContacts.map(x=>contactCardHtml(x)).join('');
+
+  const materialsSummarySorted = myMaterials.slice().sort((a,b)=> Number(b.checked) - Number(a.checked));
+  const materialsSummary = materialsSummarySorted.map(item=>`
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--card-line); font-size:13px;">
+      <span>${escapeHtml(item.text)}</span>
+      <span class="badge ${item.checked?'badge-moss-solid':'badge-grey'}">${item.checked?'已完成':'未收到'}</span>
+    </div>`).join('');
+
+  const reminderSummary = myReminders.map(r=>`
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:7px 0; border-bottom:1px solid var(--card-line); font-size:13px;">
+      <div>
+        <div>${escapeHtml(r.text||'（未填寫內容）')}</div>
+        ${r.date ? `<div class="card-hint" style="margin:2px 0 0;">提醒日期：${escapeHtml(toROC(r.date))}${r.time ? ' '+escapeHtml(r.time) : ''}</div>` : ''}
+        ${r.note ? `<div class="card-hint" style="margin:2px 0 0;">備註：${escapeHtml(r.note)}</div>` : ''}
+      </div>
+      <span class="badge ${r.done?'badge-moss':'badge-amber'}" style="white-space:nowrap;">${r.done?'已處理':'未處理'}</span>
+    </div>`).join('');
+
+  return `
+    <div class="card-top">
+      <div>
+        <div class="card-title">各案總覽</div>
+      </div>
+      <div class="cv-picker-stack">
+        <select id="cvStatusFilter">
+          <option value="進行中" ${caseViewStatusFilter==="進行中"?'selected':''}>執行中</option>
+          <option value="暫停" ${caseViewStatusFilter==="暫停"?'selected':''}>暫停</option>
+          <option value="已結案" ${caseViewStatusFilter==="已結案"?'selected':''}>已結案</option>
+        </select>
+        ${searchBoxHtml}
+        ${caseDropdownHtml(dropdownList, caseViewSelectedId)}
+        <button class="btn" id="cvAddCase">＋ 新增案件</button>
+      </div>
+    </div>
+
+    <div class="cv-summary">${rulerHtml(c.id)}</div>
+
+    ${caseViewDetailTabsHtml()}
+
+    ${caseViewDetailTab==='basic' ? `
+    <div class="cv-section">
+      <div class="cv-section-head"><span class="cv-section-title">基本資料</span>
+        <div style="display:flex; gap:8px;">
+          <button class="btn" id="cvEditBasic">⚙ 設定基本資料</button>
+          <button class="btn ghost" id="cvDeleteCase" title="刪除此案">✕ 刪除此案</button>
+        </div>
+      </div>
+      <div>
+        ${(() => {
+          const lines = [];
+          if(c.folder) lines.push(['資料夾', c.folder]);
+          if(c.name) lines.push(['案名', c.name]);
+          if(c.client) lines.push(['委託單位／義務人', c.client]);
+          if(c.rep) lines.push(['代表人', c.rep]);
+          if(c.caseType) lines.push(['案件類型', c.caseType]);
+          if(c.category) lines.push(['分類', c.category]);
+          if(c.status) lines.push(['狀態', c.status]);
+          if(c.approvalDraftDate) lines.push(['核定本日期', c.approvalDraftDate]);
+          if(c.actualClose) lines.push(['核定日期', c.actualClose]);
+          if(c.docNo) lines.push(['核定文號', c.docNo]);
+          if(getSettings().bonusEnabled){
+            if(c.serviceFee) lines.push(['服務費（元）', c.serviceFee]);
+            if(c.paymentDate) lines.push(['匯款時間', c.paymentDate]);
+          }
+          if(lines.length === 0) return `<div class="card-hint" style="margin:0;">尚未填寫任何基本資料</div>`;
+          return `<div style="width:100%;">${lines.map(([label,val])=>`
+            <div style="display:flex; align-items:flex-start; gap:14px; padding:6px 0; border-bottom:1px solid var(--card-line);">
+              <span style="width:130px; flex-shrink:0; color:var(--teal); font-family:'Noto Serif TC', serif; font-size:12.5px; padding-top:2px;">${label}</span>
+              <span style="flex:1; min-width:0; font-weight:700; font-size:13.5px; white-space:normal; word-break:break-word;">${label==='案名' ? formatCaseNameHtml(String(val)) : (label==='服務費（元）' ? escapeHtml(formatMoneyDisplay(val)) : escapeHtml(String(val)))}</span>
+            </div>`).join('')}</div>`;
+        })()}
+      </div>
+    </div>` : ''}
+
+    ${caseViewDetailTab==='materials' ? `
+    <div class="cv-section">
+      <div class="cv-section-head"><span class="cv-section-title">水保所需資料</span><button class="btn" id="cvEditMaterials">⚙ 設定所需資料</button></div>
+      ${materialsSummary || `<div class="card-hint" style="margin:0;">尚無項目</div>`}
+    </div>` : ''}
+
+    ${caseViewDetailTab==='progress' ? `
+    <div class="cv-section">
+      <div class="cv-section-head"><span class="cv-section-title">工作進度</span><button class="btn" id="cvEditProgress">⚙ 設定工作進度</button></div>
+      ${progressBarHtml(myProgressRec)}
+      <div style="margin-top:14px;">${progressTableHtml(myProgressRec)}</div>
+    </div>` : ''}
+
+    ${caseViewDetailTab==='reminders' ? `
+    <div class="cv-section">
+      <div class="cv-section-head"><span class="cv-section-title">備註提醒</span><button class="btn" id="cvEditReminders">⚙ 設定備註提醒</button></div>
+      <div class="card-hint" style="margin-bottom:8px;">設定提醒日期前一天會通知</div>
+      ${reminderSummary || `<div class="card-hint" style="margin:0;">尚無備註提醒</div>`}
+    </div>` : ''}
+
+    ${caseViewDetailTab==='contacts' ? `
+    <div class="cv-section">
+      <div class="cv-section-head"><span class="cv-section-title">聯絡窗口</span><button class="btn" id="cvAddContact">＋ 新增窗口</button></div>
+      ${contactCards || `<div class="card-hint" style="margin:0;">此案尚無聯絡窗口</div>`}
+    </div>` : ''}
+    ${progressModalOpen ? progressModalHtml(c) : ''}
+    ${contactModalOpen ? contactModalHtml(c) : ''}
+    ${materialsModalOpen ? materialsModalHtml(c) : ''}
+    ${remindersModalOpen ? remindersModalHtml(c) : ''}
+    ${basicModalOpen ? basicModalHtml() : ''}`;
+}
+
+/* ============ 事件綁定 ============ */
+
+/* ============ 匯出 PDF（右上角帳號列「匯出PDF」彈跳視窗，可勾選各分頁要匯出的項目，A4直式、依畫面比例等比縮放，過長自動分頁） ============ */
+let pdfExportTab = 'cases';
+let pdfExportChecks = {
+  cases: { closed:false },
+  progress: { ongoing:false, paused:false },
+  caseDetail: { basic:false, materials:false, progress:false, reminders:false, contacts:false },
+  bonus: { target:false, detail:false, monthly:false, unpaid:false }
+};
+const PDF_EXPORT_ITEM_KEYS = {
+  cases: ['closed'],
+  progress: ['ongoing','paused'],
+  caseDetail: ['basic','materials','progress','reminders','contacts'],
+  bonus: ['target','detail','monthly','unpaid']
+};
+
+function pdfExportItemsHtml(tab){
+  const rowHtml = (dataKey, label) => `<label style="display:flex; align-items:center; gap:8px; font-size:13px; padding:6px 0;"><input type="checkbox" data-pdf-chk="${dataKey}" style="width:auto;" ${dataKey.split(':').reduce((o,k,i)=> i===0 ? pdfExportChecks[k] : o[k], null)?'checked':''}> ${label}</label>`;
+  const selectAllChecked = PDF_EXPORT_ITEM_KEYS[tab] && PDF_EXPORT_ITEM_KEYS[tab].every(k=>pdfExportChecks[tab][k]);
+  const selectAllHtml = `<label style="display:flex; align-items:center; gap:8px; font-size:13px; padding:6px 0 10px; margin-bottom:6px; border-bottom:1px dashed var(--card-line); font-weight:700;"><input type="checkbox" data-pdf-selectall="${tab}" style="width:auto;" ${selectAllChecked?'checked':''}> 全選</label>`;
+  if(tab==='cases'){
+    return rowHtml('cases:closed','已結案案件');
+  }
+  if(tab==='progress'){
+    return selectAllHtml
+      + rowHtml('progress:ongoing','執行中案件（清單＋進度）')
+      + rowHtml('progress:paused','暫停中案件（清單＋進度）');
+  }
+  if(tab==='caseDetail'){
+    const cc = state.cases.find(x=>x.id===caseViewSelectedId);
+    if(!cc){
+      return `<div class="card-hint" style="margin:0;">尚未選擇案件，請先到「各案總覽」分頁點選一個案件後再回來匯出</div>`;
+    }
+    const label0 = `<div class="card-hint" style="margin:0 0 8px;">目前選定案件：<strong style="color:var(--ink);">${escapeHtml(cc.name||'（未命名案件）')}</strong></div>`;
+    return label0
+      + selectAllHtml
+      + rowHtml('caseDetail:basic','基本資料')
+      + rowHtml('caseDetail:materials','水保所需資料')
+      + rowHtml('caseDetail:progress','工作進度')
+      + rowHtml('caseDetail:reminders','備註提醒')
+      + rowHtml('caseDetail:contacts','聯絡窗口');
+  }
+  if(tab==='bonus'){
+    const isBonusOverview = bonusKpiYear === '總覽';
+    if(isBonusOverview){
+      return rowHtml('bonus:detail','已匯款獎金明細')
+        + rowHtml('bonus:monthly','每月匯款總表');
+    }
+    return selectAllHtml
+      + rowHtml('bonus:target',`${bonusKpiYear||''} 年度目標`)
+      + rowHtml('bonus:detail','已匯款獎金明細')
+      + rowHtml('bonus:monthly','每月匯款總表')
+      + rowHtml('bonus:unpaid','尚未填匯款時間提醒');
+  }
+  return '';
+}
+
+function pdfExportModalHtml(errorMsg){
+  const bonusEnabled = getSettings().bonusEnabled;
+  if(pdfExportTab==='bonus' && !bonusEnabled) pdfExportTab = 'cases';
+  const tabOptions = [
+    ['cases','01 結案總表'],
+    ['progress','02 進度總覽'],
+    ['caseDetail','03 各案總覽（目前選定案件）'],
+  ];
+  if(bonusEnabled) tabOptions.push(['bonus','04 結案獎金']);
+  const selectHtml = tabOptions.map(([v,l])=>`<option value="${v}" ${pdfExportTab===v?'selected':''}>${l}</option>`).join('');
+  return `
+    <div class="modal-overlay" id="pdfExportOverlay">
+      <div class="modal-box" style="max-width:480px;">
+        <div class="modal-title">匯出PDF</div>
+        <div class="modal-row">
+          <label>選擇分頁</label>
+          <select id="pdfExportTabSelect">${selectHtml}</select>
+        </div>
+        <div id="pdfExportItemsWrap">${pdfExportItemsHtml(pdfExportTab)}</div>
+        ${errorMsg ? `<div style="color:var(--deadline-red); font-size:12.5px; margin-top:10px; font-weight:700;">${escapeHtml(errorMsg)}</div>` : ''}
+        <div class="modal-actions">
+          <button class="btn ghost" id="pdfExportCancel">取消</button>
+          <button class="btn" id="pdfExportGenerate">產生PDF</button>
+        </div>
+      </div>
+    </div>`;
+}
+function openPdfExportModal(){
+  document.getElementById('credModalArea').innerHTML = pdfExportModalHtml();
+  bindPdfExportModal();
+}
+function closePdfExportModal(){
+  document.getElementById('credModalArea').innerHTML = '';
+}
+function bindPdfExportModal(){
+  document.getElementById('pdfExportCancel') && document.getElementById('pdfExportCancel').addEventListener('click', closePdfExportModal);
+  document.getElementById('pdfExportOverlay') && document.getElementById('pdfExportOverlay').addEventListener('click', (e)=>{
+    if(e.target.id === 'pdfExportOverlay') closePdfExportModal();
+  });
+  document.getElementById('pdfExportTabSelect') && document.getElementById('pdfExportTabSelect').addEventListener('change', (e)=>{
+    pdfExportTab = e.target.value;
+    document.getElementById('credModalArea').innerHTML = pdfExportModalHtml();
+    bindPdfExportModal();
+  });
+  document.querySelectorAll('[data-pdf-chk]').forEach(el=>{
+    el.addEventListener('change', (e)=>{
+      const [tabKey, itemKey] = e.target.getAttribute('data-pdf-chk').split(':');
+      pdfExportChecks[tabKey][itemKey] = e.target.checked;
+      const selectAllEl = document.querySelector(`[data-pdf-selectall="${tabKey}"]`);
+      if(selectAllEl){
+        selectAllEl.checked = PDF_EXPORT_ITEM_KEYS[tabKey].every(k=>pdfExportChecks[tabKey][k]);
+      }
+    });
+  });
+  document.querySelectorAll('[data-pdf-selectall]').forEach(el=>{
+    el.addEventListener('change', (e)=>{
+      const tabKey = e.target.getAttribute('data-pdf-selectall');
+      const checked = e.target.checked;
+      PDF_EXPORT_ITEM_KEYS[tabKey].forEach(k=>{ pdfExportChecks[tabKey][k] = checked; });
+      document.querySelectorAll(`[data-pdf-chk^="${tabKey}:"]`).forEach(chk=>{ chk.checked = checked; });
+    });
+  });
+  const genBtn = document.getElementById('pdfExportGenerate');
+  if(genBtn) genBtn.addEventListener('click', ()=> runPdfExport(genBtn));
+}
+
+/* 03各案總覽：把單一小節的HTML獨立出來，不受畫面上目前顯示哪個小節（caseViewDetailTab）限制，供PDF匯出組合多個小節用 */
+function buildCaseSectionHtml(c, key){
+  if(key==='basic'){
+    const lines = [];
+    if(c.folder) lines.push(['資料夾', c.folder]);
+    if(c.name) lines.push(['案名', c.name]);
+    if(c.client) lines.push(['委託單位／義務人', c.client]);
+    if(c.rep) lines.push(['代表人', c.rep]);
+    if(c.caseType) lines.push(['案件類型', c.caseType]);
+    if(c.category) lines.push(['分類', c.category]);
+    if(c.status) lines.push(['狀態', c.status]);
+    if(c.approvalDraftDate) lines.push(['核定本日期', c.approvalDraftDate]);
+    if(c.actualClose) lines.push(['核定日期', c.actualClose]);
+    if(c.docNo) lines.push(['核定文號', c.docNo]);
+    if(getSettings().bonusEnabled){
+      if(c.serviceFee) lines.push(['服務費（元）', c.serviceFee]);
+      if(c.paymentDate) lines.push(['匯款時間', c.paymentDate]);
+    }
+    const body = lines.length===0 ? `<div class="card-hint" style="margin:0;">尚未填寫任何基本資料</div>`
+      : `<div style="width:100%;">${lines.map(([label,val])=>`
+        <div style="display:flex; align-items:flex-start; gap:14px; padding:6px 0; border-bottom:1px solid var(--card-line);">
+          <span style="width:130px; flex-shrink:0; color:var(--teal); font-family:'Noto Serif TC', serif; font-size:12.5px; padding-top:2px;">${label}</span>
+          <span style="flex:1; min-width:0; font-weight:700; font-size:13.5px; white-space:normal; word-break:break-word;">${label==='案名' ? formatCaseNameHtml(String(val)) : (label==='服務費（元）' ? escapeHtml(formatMoneyDisplay(val)) : escapeHtml(String(val)))}</span>
+        </div>`).join('')}</div>`;
+    return `<div class="cv-section"><div class="cv-section-head"><span class="cv-section-title">基本資料</span></div>${body}</div>`;
+  }
+  if(key==='materials'){
+    const myMaterials = getMaterialsChecklist(c).slice().sort((a,b)=> Number(b.checked)-Number(a.checked));
+    const html = myMaterials.map(item=>`
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--card-line); font-size:13px;">
+        <span>${escapeHtml(item.text)}</span>
+        <span class="badge ${item.checked?'badge-moss-solid':'badge-grey'}">${item.checked?'已完成':'未收到'}</span>
+      </div>`).join('');
+    return `<div class="cv-section"><div class="cv-section-head"><span class="cv-section-title">水保所需資料</span></div>${html || `<div class="card-hint" style="margin:0;">尚無項目</div>`}</div>`;
+  }
+  if(key==='progress'){
+    const p = getProgressForCase(c.id);
+    return `<div class="cv-section"><div class="cv-section-head"><span class="cv-section-title">工作進度</span></div>${progressBarHtmlForPdf(p)}<div style="margin-top:14px;">${progressTableHtml(p)}</div></div>`;
+  }
+  if(key==='reminders'){
+    const myReminders = getRemindersForCase(c.id).slice().sort((a,b)=> (a.date||'9999').localeCompare(b.date||'9999'));
+    const html = myReminders.map(r=>`
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:7px 0; border-bottom:1px solid var(--card-line); font-size:13px;">
+        <div>
+          <div>${escapeHtml(r.text||'（未填寫內容）')}</div>
+          ${r.date ? `<div class="card-hint" style="margin:2px 0 0;">提醒日期：${escapeHtml(toROC(r.date))}${r.time ? ' '+escapeHtml(r.time) : ''}</div>` : ''}
+          ${r.note ? `<div class="card-hint" style="margin:2px 0 0;">備註：${escapeHtml(r.note)}</div>` : ''}
+        </div>
+        <span class="badge ${r.done?'badge-moss':'badge-amber'}" style="white-space:nowrap;">${r.done?'已處理':'未處理'}</span>
+      </div>`).join('');
+    return `<div class="cv-section"><div class="cv-section-head"><span class="cv-section-title">備註提醒</span></div>${html || `<div class="card-hint" style="margin:0;">尚無備註提醒</div>`}</div>`;
+  }
+  if(key==='contacts'){
+    const myContacts = state.contacts.filter(x=>x.caseId===c.id).slice().sort((a,b) => CONTACT_TYPE_ORDER.indexOf(a.type) - CONTACT_TYPE_ORDER.indexOf(b.type));
+    const html = myContacts.map(x=>contactCardHtml(x)).join('');
+    return `<div class="cv-section"><div class="cv-section-head"><span class="cv-section-title">聯絡窗口</span></div>${html || `<div class="card-hint" style="margin:0;">此案尚無聯絡窗口</div>`}</div>`;
+  }
+  return '';
+}
+
+/* 04結案獎金：把各區塊獨立出來，依勾選項目組合成PDF內容 */
+function buildBonusExportHtml(opts){
+  const years = getAvailableBonusYears();
+  if(!bonusKpiYear || !(years.includes(bonusKpiYear) || bonusKpiYear === '總覽')) bonusKpiYear = years[0];
+  const isOverview = bonusKpiYear === '總覽';
+  const paidThisYear = state.cases
+    .filter(c=> parseFloat(c.serviceFee) > 0 && c.paymentDate && (isOverview || c.paymentDate.slice(0,4)===bonusKpiYear))
+    .slice()
+    .sort((a,b)=> (a.approvalDraftDate||'').localeCompare(b.approvalDraftDate||''));
+  let totalFee = 0;
+  const rows = paidThisYear.map((c,i)=>{
+    const fee = parseFloat(c.serviceFee) || 0;
+    totalFee += fee;
+    const bonus = fee * 0.04;
+    return `<tr>
+      <td class="readonly computed" style="text-align:center;">${i+1}</td>
+      <td class="readonly" style="white-space:normal;">${formatCaseNameHtml(c.name)}</td>
+      <td class="readonly" style="white-space:nowrap;">${escapeHtml(c.caseType||'')}</td>
+      <td class="readonly" style="white-space:nowrap;">${escapeHtml(c.approvalDraftDate||'')}</td>
+      <td class="readonly" style="white-space:nowrap;">${escapeHtml(c.paymentDate||'')}</td>
+      <td class="readonly" style="white-space:nowrap; text-align:right;">${fee ? fee.toLocaleString() : '－'}</td>
+      <td class="readonly" style="white-space:nowrap; text-align:right;">${fee ? bonus.toLocaleString(undefined,{maximumFractionDigits:0}) : '－'}</td>
+    </tr>`;
+  }).join('');
+  const totalBonus = totalFee * 0.04;
+  const monthlyMap = {};
+  paidThisYear.forEach(c=>{
+    const month = c.paymentDate.slice(0,7);
+    const bonus = (parseFloat(c.serviceFee) || 0) * 0.04;
+    monthlyMap[month] = (monthlyMap[month] || 0) + bonus;
+  });
+  const monthKeys = Object.keys(monthlyMap).sort();
+  const monthlyRows = monthKeys.map(m=>`<tr><td class="readonly">${m}</td><td class="readonly" style="text-align:right;">${monthlyMap[m].toLocaleString(undefined,{maximumFractionDigits:0})}</td></tr>`).join('');
+  const unpaid = state.cases.filter(c=> c.status==="已結案" && parseFloat(c.serviceFee) > 0 && !c.paymentDate);
+  const unpaidRows = unpaid.map(c=>`<tr>
+    <td class="readonly" style="white-space:normal;">${formatCaseNameHtml(c.name)}</td>
+    <td class="readonly" style="white-space:nowrap;">${escapeHtml(c.approvalDraftDate||'')}</td>
+    <td class="readonly" style="white-space:nowrap; text-align:right;">${(parseFloat(c.serviceFee)||0).toLocaleString()}</td>
+  </tr>`).join('');
+  const salary = parseFloat(getYearSalary(bonusKpiYear)) || 0;
+  const kpiTarget = salary * 36;
+  const completionRate = kpiTarget > 0 ? (totalFee / kpiTarget * 100) : 0;
+  const sectionLabel = isOverview ? '總覽' : `${bonusKpiYear} 年度`;
+
+  let html = `<div class="card-title" style="margin-bottom:16px;">結案獎金（${isOverview ? '總覽' : bonusKpiYear+'年度'}）</div>`;
+  if(opts.target && !isOverview){
+    html += `<div class="cv-section" style="margin-top:0; padding-top:0; border-top:none;">
+      <div class="cv-section-head"><span class="cv-section-title">${sectionLabel}目標</span></div>
+      <div class="cv-formgrid">
+        <div class="cv-field"><label>月薪（元）</label><input type="text" value="${salary ? salary.toLocaleString() : ''}" readonly></div>
+        <div class="cv-field"><label>年度目標（元＝月薪×36）</label><input type="text" value="${kpiTarget ? kpiTarget.toLocaleString() : '－'}" readonly></div>
+        <div class="cv-field"><label>本年度已匯款服務費總額（元）</label><input type="text" value="${totalFee.toLocaleString()}" readonly></div>
+        <div class="cv-field"><label>完成率</label><input type="text" value="${kpiTarget ? completionRate.toFixed(1)+'%' : '尚未設定月薪'}" readonly style="font-weight:700; color:${completionRate>=100?'var(--moss)':'var(--amber)'};"></div>
+      </div>
+    </div>`;
+  }
+  if(opts.detail){
+    html += `<div class="cv-section" ${(isOverview && !opts.target) ? 'style="margin-top:0; padding-top:0; border-top:none;"' : ''}>
+      <div class="cv-section-head"><span class="cv-section-title">${sectionLabel}已匯款獎金明細</span></div>
+      <div class="tbl-scroll"><table>
+        <thead><tr><th>編號</th><th>案名</th><th>案件類型</th><th>核定本日期</th><th>匯款時間</th><th style="text-align:right;">服務費（元）</th><th style="text-align:right;">結案獎金（元）</th></tr></thead>
+        <tbody>${rows || `<tr><td colspan="7" class="empty">尚無已匯款的案子</td></tr>`}</tbody>
+        <tfoot><tr>
+          <td class="readonly" colspan="2">${isOverview ? '總計' : '年度結案獎金總計'}</td><td class="readonly"></td><td class="readonly"></td><td class="readonly"></td>
+          <td class="readonly" style="text-align:right;">${totalFee.toLocaleString()}</td>
+          <td class="readonly" style="text-align:right; color:var(--moss);">${totalBonus.toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+        </tr></tfoot>
+      </table></div>
+    </div>`;
+  }
+  if(opts.monthly){
+    html += `<div class="cv-section">
+      <div class="cv-section-head"><span class="cv-section-title">${sectionLabel}每月匯款總表</span></div>
+      <div class="tbl-scroll"><table>
+        <thead><tr><th>月份</th><th style="text-align:right;">匯款金額（元）</th></tr></thead>
+        <tbody>${monthlyRows || `<tr><td colspan="2" class="empty">尚無匯款紀錄</td></tr>`}</tbody>
+      </table></div>
+    </div>`;
+  }
+  if(opts.unpaid && !isOverview && unpaid.length){
+    html += `<div class="cv-section">
+      <div class="cv-section-head"><span class="cv-section-title">尚未填匯款時間（${unpaid.length}）</span></div>
+      <div class="tbl-scroll"><table>
+        <thead><tr><th>案名</th><th>核定本日期</th><th style="text-align:right;">服務費（元）</th></tr></thead>
+        <tbody>${unpaidRows}</tbody>
+      </table></div>
+    </div>`;
+  }
+  return html;
+}
+
+async function runPdfExport(btn){
+  const tab = pdfExportTab;
+  const dateStr = todayLocalStr();
+  let innerHtml = '', filename = '';
+
+  if(tab==='cases'){
+    const chk = pdfExportChecks.cases;
+    if(!chk.closed){
+      document.getElementById('credModalArea').innerHTML = pdfExportModalHtml('請至少勾選一個項目'); bindPdfExportModal(); return;
+    }
+    let closed = state.cases.filter(c=>c.status==='已結案');
+    if(closedTypeFilter !== "總覽") closed = closed.filter(c => c.caseType === closedTypeFilter);
+    if(closedCategoryFilter !== "總覽") closed = closed.filter(c => c.category === closedCategoryFilter);
+    if(closedYearFilter !== "總覽") closed = closed.filter(c => c.actualClose && c.actualClose.slice(0,4) === closedYearFilter);
+    innerHtml = `<div class="card-title" style="margin-bottom:16px;">結案總表</div>`;
+    innerHtml += `<div class="cv-section" style="margin-top:0; padding-top:0; border-top:none;"><div class="cv-section-head"><span class="cv-section-title">已結案（${closed.length}）</span></div>${caseGroupTableClosed(closed, "此分類尚無已結案案件")}</div>`;
+    filename = `結案總表_${dateStr}.pdf`;
+  } else if(tab==='progress'){
+    const chk = pdfExportChecks.progress;
+    if(!chk.ongoing && !chk.paused){
+      document.getElementById('credModalArea').innerHTML = pdfExportModalHtml('請至少勾選一個項目'); bindPdfExportModal(); return;
+    }
+    const ongoing = state.cases.filter(c=>c.status==='進行中');
+    const paused = state.cases.filter(c=>c.status==='暫停');
+    innerHtml = `<div class="card-title" style="margin-bottom:16px;">進度總覽</div>`;
+    if(chk.ongoing) innerHtml += `<div class="cv-section" style="margin-top:0; padding-top:0; border-top:none;"><div class="cv-section-head"><span class="cv-section-title">執行中（${ongoing.length}）</span></div>${caseGroupTable(ongoing, "尚無執行中案件")}${ongoing.map(c=>progressCardHtmlForPdf(c)).join('')}</div>`;
+    if(chk.paused) innerHtml += `<div class="cv-section"><div class="cv-section-head"><span class="cv-section-title">暫停中（${paused.length}）</span></div>${caseGroupTable(paused, "尚無暫停中案件")}${paused.map(c=>progressCardHtmlForPdf(c)).join('')}</div>`;
+    filename = `進度總覽_${dateStr}.pdf`;
+  } else if(tab==='caseDetail'){
+    const cc = state.cases.find(x=>x.id===caseViewSelectedId);
+    if(!cc){
+      document.getElementById('credModalArea').innerHTML = pdfExportModalHtml('請先到「各案總覽」分頁選擇一個案件'); bindPdfExportModal(); return;
+    }
+    const chk = pdfExportChecks.caseDetail;
+    const keys = ['basic','materials','progress','reminders','contacts'].filter(k=>chk[k]);
+    if(keys.length===0){
+      document.getElementById('credModalArea').innerHTML = pdfExportModalHtml('請至少勾選一個項目'); bindPdfExportModal(); return;
+    }
+    innerHtml = `<div class="card-title" style="margin-bottom:16px;">${escapeHtml(cc.name||'（未命名案件）')}</div>` + keys.map(k=>buildCaseSectionHtml(cc,k)).join('');
+    const safeName = (cc.name||'各案總覽').replace(/[\\/:*?"<>|]/g,'_');
+    filename = `${safeName}_${dateStr}.pdf`;
+  } else if(tab==='bonus'){
+    const chk = pdfExportChecks.bonus;
+    if(!chk.target && !chk.detail && !chk.monthly && !chk.unpaid){
+      document.getElementById('credModalArea').innerHTML = pdfExportModalHtml('請至少勾選一個項目'); bindPdfExportModal(); return;
+    }
+    innerHtml = buildBonusExportHtml(chk);
+    filename = `結案獎金_${bonusKpiYear||''}_${dateStr}.pdf`;
+  }
+
+  let orientation = 'p';
+  await exportHtmlToPdf(innerHtml, filename, btn, orientation);
+  closePdfExportModal();
+}
+
+async function exportHtmlToPdf(innerHtml, filename, btn, orientation){
+  orientation = orientation || 'p';
+  if(!window.html2canvas || !window.jspdf){
+    alert('PDF匯出元件尚未載入完成，請稍後再試一次');
+    return;
+  }
+  const originalLabel = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = '產生中…'; }
+  const sandbox = document.createElement('div');
+  sandbox.className = 'card';
+  sandbox.style.cssText = 'position:fixed; left:-10000px; top:0; width:1136px; z-index:-1; padding:22px;';
+  sandbox.innerHTML = innerHtml;
+  document.body.appendChild(sandbox);
+  document.body.classList.add('pdf-exporting');
+  try{
+    await new Promise(r=>setTimeout(r, 60)); // 等按鈕隱藏的樣式套用後再擷取畫面
+    const canvas = await html2canvas(sandbox, {scale:2, backgroundColor:'#F5F1E8', useCORS:true});
+    const imgWidthPx = canvas.width, imgHeightPx = canvas.height;
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF(orientation, 'mm', 'a4');
+    const pageWidthMm = pdf.internal.pageSize.getWidth();
+    const pageHeightMm = pdf.internal.pageSize.getHeight();
+    const margin = 10;
+    const usableWidthMm = pageWidthMm - margin * 2;
+    const usableHeightMm = pageHeightMm - margin * 2;
+    const pxPerMm = imgWidthPx / usableWidthMm; // 依畫面寬度等比換算，避免比例跟畫面差異太大
+    const pageHeightPx = usableHeightMm * pxPerMm;
+    let renderedPx = 0;
+    let first = true;
+    while(renderedPx < imgHeightPx){
+      const sliceHeightPx = Math.min(pageHeightPx, imgHeightPx - renderedPx);
+      const pageCanvas = document.createElement('canvas');
+      pageCanvas.width = imgWidthPx;
+      pageCanvas.height = sliceHeightPx;
+      pageCanvas.getContext('2d').drawImage(canvas, 0, renderedPx, imgWidthPx, sliceHeightPx, 0, 0, imgWidthPx, sliceHeightPx);
+      const sliceData = pageCanvas.toDataURL('image/jpeg', 0.95);
+      const sliceHeightMm = sliceHeightPx / pxPerMm;
+      if(!first) pdf.addPage();
+      pdf.addImage(sliceData, 'JPEG', margin, margin, usableWidthMm, sliceHeightMm);
+      renderedPx += sliceHeightPx;
+      first = false;
+    }
+    pdf.save(filename);
+  }catch(e){
+    alert('PDF匯出失敗，請重試：' + (e && e.message ? e.message : e));
+  }finally{
+    document.body.classList.remove('pdf-exporting');
+    document.body.removeChild(sandbox);
+    if(btn){ btn.disabled = false; btn.textContent = originalLabel; }
+  }
+}
+
+function bindEvents(){
+  const bonusYearSel = document.getElementById('bonusYearSelect');
+  if(bonusYearSel){
+    bonusYearSel.addEventListener('change', ()=>{
+      bonusKpiYear = bonusYearSel.value;
+      render();
+    });
+  }
+  const bonusSalaryEl = document.getElementById('bonusSalaryInput');
+  if(bonusSalaryEl){
+    bonusSalaryEl.addEventListener('input', e=>{ formatMoneyInputLive(e.target); });
+    bonusSalaryEl.addEventListener('change', e=>{
+      setYearSalary(bonusKpiYear, e.target.value.replace(/[^\d]/g, ''));
+      scheduleSave();
+      render();
+    });
+  }
+  const closedFilterSel = document.getElementById('closedTypeFilter');
+  if(closedFilterSel){
+    closedFilterSel.addEventListener('change', ()=>{
+      closedTypeFilter = closedFilterSel.value;
+      render();
+    });
+  }
+  const closedCategoryFilterSel = document.getElementById('closedCategoryFilter');
+  if(closedCategoryFilterSel){
+    closedCategoryFilterSel.addEventListener('change', ()=>{
+      closedCategoryFilter = closedCategoryFilterSel.value;
+      render();
+    });
+  }
+  const closedYearFilterSel = document.getElementById('closedYearFilter');
+  if(closedYearFilterSel){
+    closedYearFilterSel.addEventListener('change', ()=>{
+      closedYearFilter = closedYearFilterSel.value;
+      render();
+    });
+  }
+  document.getElementById('importYenchin') && document.getElementById('importYenchin').addEventListener('click', ()=>{
+    const existingNames = new Set(state.cases.map(c => c.name));
+    let added = 0, skipped = 0;
+    HISTORICAL_YENCHIN_CASES.forEach(r=>{
+      if(existingNames.has(r.name)){ skipped++; return; }
+      state.cases.push(historicalCaseToRecord(r));
+      existingNames.add(r.name);
+      added++;
+    });
+    scheduleSave(); render();
+    const s = document.getElementById('importStatus');
+    if(s) s.textContent = `已匯入 ${added} 筆${skipped ? `，略過 ${skipped} 筆已存在` : ''}`;
+  });
+
+  document.querySelectorAll('.rowdel').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const kind = btn.dataset.del, id = btn.dataset.id;
+      state[kind] = state[kind].filter(x=>x.id!==id);
+      scheduleSave(); render();
+    });
+  });
+
+  document.querySelectorAll('[data-kind][data-id]').forEach(container=>{
+    const kind = container.dataset.kind, id = container.dataset.id;
+    const rec = state[kind].find(x=>x.id===id);
+    if(!rec) return;
+    container.querySelectorAll('[data-f]').forEach(inp=>{
+      const field = inp.dataset.f;
+      const evt = (inp.tagName==='SELECT') ? 'change' : 'input';
+      inp.addEventListener(evt, ()=>{
+        rec[field] = inp.value;
+        if(kind === 'cases') rec.updatedAt = Date.now();
+        scheduleSave();
+        // caseId 變更、案名編輯或狀態變更會影響其他分頁/總覽的下拉、統計與畫面，輕量重繪目前分頁即可
+        if(field==='name' || field==='caseId' || field==='status'){
+          const keepScroll = document.querySelector('.tbl-scroll')?.scrollLeft || 0;
+          render();
+          const sc = document.querySelector('.tbl-scroll'); if(sc) sc.scrollLeft = keepScroll;
+        }
+      });
+    });
+  });
+
+  // 各案總覽：切換案件（自訂下拉選單）
+  const cvDropdownToggle = document.getElementById('cvCaseDropdownToggle');
+  if(cvDropdownToggle){
+    cvDropdownToggle.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      caseDropdownOpen = !caseDropdownOpen;
+      render();
+    });
+  }
+  document.querySelectorAll('[data-case-id]').forEach(item=>{
+    item.addEventListener('click', ()=>{
+      caseViewSelectedId = item.dataset.caseId;
+      caseViewDetailTab = "basic";
+      caseDropdownOpen = false;
+      render();
+    });
+  });
+  const cvStatusSel = document.getElementById('cvStatusFilter');
+  if(cvStatusSel){
+    cvStatusSel.addEventListener('change', ()=>{
+      caseViewStatusFilter = cvStatusSel.value;
+      caseViewSelectedId = null;
+      caseViewSearchKeyword = "";
+      caseViewDetailTab = "basic";
+      caseDropdownOpen = false;
+      render();
+    });
+  }
+  const cvSearchInput = document.getElementById('cvSearchInput');
+  if(cvSearchInput){
+    const applyCvSearch = ()=>{
+      caseViewSearchKeyword = cvSearchInput.value;
+      caseDropdownOpen = true; // 搜尋時自動展開下拉選單，讓使用者立即看到符合的案件
+      render();
+      const el = document.getElementById('cvSearchInput');
+      if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+    };
+    cvSearchInput.addEventListener('input', (e)=>{
+      if(e.isComposing) return; // 中文注音/拼音組字中，先不重繪，避免打斷輸入法
+      applyCvSearch();
+    });
+    cvSearchInput.addEventListener('compositionend', applyCvSearch);
+    cvSearchInput.addEventListener('focus', ()=>{
+      if(!caseDropdownOpen){
+        caseDropdownOpen = true;
+        render();
+        const el = document.getElementById('cvSearchInput');
+        if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+      }
+    });
+  }
+  document.querySelectorAll('[data-detail-tab]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      caseViewDetailTab = btn.dataset.detailTab;
+      render();
+    });
+  });
+  document.getElementById('cvAddCase') && document.getElementById('cvAddCase').addEventListener('click', ()=>{
+    const newCase = {id:uid(), name:"", client:"", rep:"", handler:"", filingDate:"", actualClose:"", status:"進行中", docNo:"", caseType:"", category:"", serviceFee:"", paymentDate:"", note:"", updatedAt:Date.now()};
+    state.cases.push(newCase);
+    caseViewStatusFilter = "進行中";
+    caseViewSelectedId = newCase.id;
+    caseViewDetailTab = "basic";
+    caseDropdownOpen = false;
+    scheduleSave(); render();
+  });
+  document.getElementById('cvDeleteCase') && document.getElementById('cvDeleteCase').addEventListener('click', ()=>{
+    const idToDelete = caseViewSelectedId;
+    if(!idToDelete) return;
+    state.cases = state.cases.filter(c => c.id !== idToDelete);
+    state.progress = state.progress.filter(p => p.caseId !== idToDelete);
+    state.contacts = state.contacts.filter(x => x.caseId !== idToDelete);
+    state.docs = state.docs.filter(x => x.caseId !== idToDelete);
+    state.reminders = getReminders().filter(x => x.caseId !== idToDelete);
+    caseViewSelectedId = null;
+    caseDropdownOpen = false;
+    scheduleSave(); render();
+  });
+  document.getElementById('cvEditBasic') && document.getElementById('cvEditBasic').addEventListener('click', ()=>{
+    const c = state.cases.find(x=>x.id===caseViewSelectedId);
+    if(!c) return;
+    basicDraft = Object.assign({}, c);
+    basicModalOpen = true;
+    render();
+  });
+  document.getElementById('cvEditMaterials') && document.getElementById('cvEditMaterials').addEventListener('click', ()=>{
+    const c = state.cases.find(x=>x.id===caseViewSelectedId);
+    if(!c) return;
+    materialsDraft = { caseId: c.id, items: JSON.parse(JSON.stringify(getMaterialsChecklist(c))) };
+    materialsModalOpen = true;
+    render();
+  });
+  document.getElementById('cvEditReminders') && document.getElementById('cvEditReminders').addEventListener('click', ()=>{
+    remindersDraft = { caseId: caseViewSelectedId, items: JSON.parse(JSON.stringify(getRemindersForCase(caseViewSelectedId))) };
+    remindersModalOpen = true;
+    render();
+  });
+  document.getElementById('cvEditProgress') && document.getElementById('cvEditProgress').addEventListener('click', ()=>{
+    const existing = getProgressForCase(caseViewSelectedId);
+    progressDraft = existing ? Object.assign({}, existing) : blankProgress(caseViewSelectedId);
+    progressModalReviewTab = "1";
+    progressModalOpen = true;
+    render();
+  });
+  document.getElementById('cvAddContact') && document.getElementById('cvAddContact').addEventListener('click', ()=>{
+    contactDraft = blankContact(caseViewSelectedId);
+    contactModalOpen = true;
+    render();
+  });
+  document.querySelectorAll('[data-contact-edit]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const rec = state.contacts.find(x=>x.id===btn.dataset.contactEdit);
+      if(!rec) return;
+      contactDraft = Object.assign({}, rec);
+      contactModalOpen = true;
+      render();
+    });
+  });
+
+  if(progressModalOpen && progressDraft){
+    bindProgressModal();
+  }
+  if(contactModalOpen && contactDraft){
+    bindContactModal();
+  }
+  if(materialsModalOpen && materialsDraft){
+    bindMaterialsModal();
+  }
+  if(remindersModalOpen && remindersDraft){
+    bindRemindersModal();
+  }
+  if(basicModalOpen && basicDraft){
+    bindBasicModal();
+  }
+}
+
+function bindContactModal(){
+  const byId = id => document.getElementById(id);
+  const renderKeepModalScroll = ()=>{
+    const box = document.querySelector('#contactModalOverlay .modal-box');
+    const scrollTop = box ? box.scrollTop : 0;
+    render();
+    const newBox = document.querySelector('#contactModalOverlay .modal-box');
+    if(newBox) newBox.scrollTop = scrollTop;
+  };
+  byId('cm_type') && byId('cm_type').addEventListener('change', e=>{
+    contactDraft.type = e.target.value;
+    renderKeepModalScroll();
+  });
+  const applyReviewAgencyAutofill = ()=>{
+    if(contactDraft.type !== "審查單位") return;
+    const key = (contactDraft.org||'').trim();
+    if(!key) return;
+    const profile = getReviewAgencyProfiles()[key];
+    if(!profile) return;
+    contactDraft.name = profile.name || '';
+    contactDraft.phone = profile.phone || '';
+    contactDraft.hasPhone = !!profile.hasPhone;
+    contactDraft.lineId = profile.lineId || '';
+    contactDraft.hasLine = !!profile.hasLine;
+    contactDraft.email = profile.email || '';
+    contactDraft.address = profile.address || '';
+    renderKeepModalScroll();
+    const el = document.getElementById('cm_org');
+    if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+  };
+  byId('cm_org') && byId('cm_org').addEventListener('input', e=>{
+    contactDraft.org = e.target.value;
+    if(e.isComposing) return; // 中文組字中，先不觸發自動帶入重繪，避免打斷輸入法
+    applyReviewAgencyAutofill();
+  });
+  byId('cm_org') && byId('cm_org').addEventListener('compositionend', applyReviewAgencyAutofill);
+  byId('cm_name') && byId('cm_name').addEventListener('input', e=>{ contactDraft.name = e.target.value; });
+  byId('cm_phone') && byId('cm_phone').addEventListener('input', e=>{ contactDraft.phone = e.target.value; });
+  byId('cm_lineId') && byId('cm_lineId').addEventListener('input', e=>{ contactDraft.lineId = e.target.value; });
+  byId('cm_email') && byId('cm_email').addEventListener('input', e=>{ contactDraft.email = e.target.value; });
+  byId('cm_address') && byId('cm_address').addEventListener('input', e=>{ contactDraft.address = e.target.value; });
+  byId('cm_hasPhone') && byId('cm_hasPhone').addEventListener('change', e=>{
+    contactDraft.hasPhone = e.target.checked;
+    const wrap = byId('cm_phoneWrap'); if(wrap) wrap.style.display = e.target.checked ? '' : 'none';
+  });
+  byId('cm_hasLine') && byId('cm_hasLine').addEventListener('change', e=>{
+    contactDraft.hasLine = e.target.checked;
+    const wrap = byId('cm_lineWrap'); if(wrap) wrap.style.display = e.target.checked ? '' : 'none';
+  });
+
+  if(!contactDraft.committeeMembers) contactDraft.committeeMembers = [];
+  byId('cmAddMember') && byId('cmAddMember').addEventListener('click', ()=>{
+    contactDraft.committeeMembers.push({id:uid(), name:"", phone:"", email:"", address:""});
+    renderKeepModalScroll();
+  });
+  document.querySelectorAll('.cm-member-name').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const m = contactDraft.committeeMembers.find(x=>x.id===inp.dataset.memberId);
+      if(m) m.name = e.target.value;
+    });
+  });
+  document.querySelectorAll('.cm-member-phone').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const m = contactDraft.committeeMembers.find(x=>x.id===inp.dataset.memberId);
+      if(m) m.phone = e.target.value;
+    });
+  });
+  document.querySelectorAll('.cm-member-email').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const m = contactDraft.committeeMembers.find(x=>x.id===inp.dataset.memberId);
+      if(m) m.email = e.target.value;
+    });
+  });
+  document.querySelectorAll('.cm-member-address').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const m = contactDraft.committeeMembers.find(x=>x.id===inp.dataset.memberId);
+      if(m) m.address = e.target.value;
+    });
+  });
+  document.querySelectorAll('[data-member-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      contactDraft.committeeMembers = contactDraft.committeeMembers.filter(x=>x.id!==btn.dataset.memberDel);
+      renderKeepModalScroll();
+    });
+  });
+
+  byId('cmCancel') && byId('cmCancel').addEventListener('click', ()=>{
+    contactModalOpen = false;
+    contactDraft = null;
+    render();
+  });
+  byId('cmSave') && byId('cmSave').addEventListener('click', ()=>{
+    if(contactDraft.type === "審查單位"){
+      addReviewAgencyOption(contactDraft.org);
+      saveReviewAgencyProfile(contactDraft);
+    }
+    const existingIdx = state.contacts.findIndex(x=>x.id===contactDraft.id);
+    if(existingIdx >= 0){
+      state.contacts[existingIdx] = Object.assign({}, contactDraft);
+    } else {
+      state.contacts.push(Object.assign({}, contactDraft));
+    }
+    touchCase(contactDraft.caseId);
+    contactModalOpen = false;
+    contactDraft = null;
+    scheduleSave();
+    render();
+  });
+}
+
+/* ============ 水保所需資料：跳出視窗 ============ */
+/* ============ 基本資料：跳出視窗 ============ */
+function basicModalHtml(){
+  const d = basicDraft;
+  return `
+    <div class="modal-overlay" id="basicModalOverlay">
+      <div class="modal-box">
+        <div class="modal-title">設定基本資料</div>
+        <div class="modal-row"><label>資料夾</label><input type="text" id="bm_folder" value="${escapeHtml(d.folder||'')}"></div>
+        <div class="modal-row"><label>案名</label><input type="text" id="bm_name" value="${escapeHtml(d.name)}"></div>
+        <div class="modal-row"><label>委託單位／義務人</label><input type="text" id="bm_client" value="${escapeHtml(d.client)}"></div>
+        <div class="modal-row"><label>代表人（公司申請才填）</label><input type="text" id="bm_rep" value="${escapeHtml(d.rep||'')}"></div>
+        <div class="modal-row"><label>案件類型</label><select id="bm_caseType"><option value="">未分類</option>${selectOptions(CASE_TYPES, d.caseType)}</select></div>
+        <div class="modal-row">
+          <label>分類</label>
+          <select id="bm_category"><option value="">未分類</option>${selectOptions(getCategoryOptions(), d.category)}</select>
+          <div style="display:flex; gap:6px; margin-top:6px;">
+            <input type="text" id="newCategoryInput" placeholder="新增分類名稱" style="font-size:11px;">
+            <button class="btn ghost" id="addCategoryBtn" style="padding:5px 10px; font-size:11px; white-space:nowrap;">＋新增</button>
+            <button class="btn ghost" id="deleteCategoryBtn" style="padding:5px 10px; font-size:11px; white-space:nowrap;">✕刪除此分類</button>
+          </div>
+        </div>
+        <div class="modal-row"><label>狀態</label><select id="bm_status">${selectOptions(CASE_STATUS, d.status)}</select></div>
+        <div id="bm_closedFieldsWrap" style="${d.status==='已結案'?'':'display:none;'}">
+          <div class="modal-row"><label>核定本日期</label><input type="date" id="bm_approvalDraftDate" value="${d.approvalDraftDate||''}"></div>
+          <div class="modal-row"><label>核定日期</label><input type="date" id="bm_actualClose" value="${d.actualClose||''}"></div>
+          <div class="modal-row"><label>核定文號</label><input type="text" id="bm_docNo" value="${escapeHtml(d.docNo||'')}"></div>
+          ${getSettings().bonusEnabled ? `
+          <div class="modal-row"><label>服務費（元）</label><input type="text" inputmode="numeric" id="bm_serviceFee" value="${formatMoneyDisplay(d.serviceFee)}"></div>
+          <div class="modal-row"><label>匯款時間</label><input type="date" id="bm_paymentDate" value="${d.paymentDate||''}"></div>` : ''}
+        </div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="bmCancel">取消</button>
+          <button class="btn" id="bmSave">儲存</button>
+        </div>
+      </div>
+    </div>`;
+}
+function bindBasicModal(){
+  const byId = id => document.getElementById(id);
+  byId('bm_folder') && byId('bm_folder').addEventListener('input', e=>{ basicDraft.folder = e.target.value; });
+  byId('bm_name') && byId('bm_name').addEventListener('input', e=>{ basicDraft.name = e.target.value; });
+  byId('bm_client') && byId('bm_client').addEventListener('input', e=>{ basicDraft.client = e.target.value; });
+  byId('bm_rep') && byId('bm_rep').addEventListener('input', e=>{ basicDraft.rep = e.target.value; });
+  byId('bm_caseType') && byId('bm_caseType').addEventListener('change', e=>{ basicDraft.caseType = e.target.value; });
+  byId('bm_category') && byId('bm_category').addEventListener('change', e=>{ basicDraft.category = e.target.value; });
+  byId('bm_status') && byId('bm_status').addEventListener('change', e=>{
+    basicDraft.status = e.target.value;
+    render();
+  });
+  byId('bm_approvalDraftDate') && byId('bm_approvalDraftDate').addEventListener('input', e=>{ basicDraft.approvalDraftDate = e.target.value; });
+  byId('bm_actualClose') && byId('bm_actualClose').addEventListener('input', e=>{ basicDraft.actualClose = e.target.value; });
+  byId('bm_docNo') && byId('bm_docNo').addEventListener('input', e=>{ basicDraft.docNo = e.target.value; });
+  byId('bm_serviceFee') && byId('bm_serviceFee').addEventListener('input', e=>{ basicDraft.serviceFee = formatMoneyInputLive(e.target); });
+  byId('bm_paymentDate') && byId('bm_paymentDate').addEventListener('input', e=>{ basicDraft.paymentDate = e.target.value; });
+  byId('addCategoryBtn') && byId('addCategoryBtn').addEventListener('click', ()=>{
+    const inp = byId('newCategoryInput');
+    const val = (inp.value||'').trim();
+    if(!val) return;
+    addCategoryOption(val);
+    basicDraft.category = val;
+    scheduleSave();
+    render();
+  });
+  byId('deleteCategoryBtn') && byId('deleteCategoryBtn').addEventListener('click', ()=>{
+    const sel = byId('bm_category');
+    const val = sel ? sel.value : '';
+    if(!val) return;
+    removeCategoryOption(val);
+    if(basicDraft.category === val) basicDraft.category = '';
+    scheduleSave();
+    render();
+  });
+  byId('bmCancel') && byId('bmCancel').addEventListener('click', ()=>{
+    basicModalOpen = false; basicDraft = null; render();
+  });
+  byId('bmSave') && byId('bmSave').addEventListener('click', ()=>{
+    const c = state.cases.find(x=>x.id===basicDraft.id);
+    if(c){
+      Object.assign(c, basicDraft);
+      touchCase(c.id);
+    }
+    basicModalOpen = false; basicDraft = null;
+    scheduleSave(); render();
+  });
+}
+
+function materialsModalHtml(c){
+  const draft = materialsDraft;
+  const rows = draft.items.map(item=>`
+    <label style="display:flex; align-items:flex-start; gap:8px; padding:7px 0; border-bottom:1px solid var(--card-line); font-size:13px;">
+      <input type="checkbox" class="md-check" data-id="${item.id}" ${item.checked?'checked':''} style="width:auto; margin-top:3px;">
+      <span style="flex:1;">${escapeHtml(item.text)}</span>
+      <button class="rowdel" data-md-del="${item.id}" title="刪除">✕</button>
+    </label>`).join('');
+  return `
+    <div class="modal-overlay" id="materialsModalOverlay">
+      <div class="modal-box">
+        <div class="modal-title">設定水保所需資料</div>
+        <div id="materialsDraftList">${rows || '<div class="card-hint" style="margin:0 0 8px;">尚無項目</div>'}</div>
+        <div style="display:flex; gap:6px; margin-top:10px;">
+          <input type="text" id="mdNewInput" placeholder="新增項目">
+          <button class="btn ghost" id="mdAddBtn" style="white-space:nowrap;">＋新增</button>
+        </div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="mdCancel">取消</button>
+          <button class="btn" id="mdSave">儲存</button>
+        </div>
+      </div>
+    </div>`;
+}
+function bindMaterialsModal(){
+  const byId = id => document.getElementById(id);
+  document.querySelectorAll('.md-check').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const item = materialsDraft.items.find(x=>x.id===cb.dataset.id);
+      if(item) item.checked = cb.checked;
+    });
+  });
+  document.querySelectorAll('[data-md-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      materialsDraft.items = materialsDraft.items.filter(x=>x.id!==btn.dataset.mdDel);
+      render();
+    });
+  });
+  byId('mdAddBtn') && byId('mdAddBtn').addEventListener('click', ()=>{
+    const inp = byId('mdNewInput');
+    const val = (inp.value||'').trim();
+    if(!val) return;
+    materialsDraft.items.push({id:uid(), text:val, checked:false});
+    render();
+  });
+  byId('mdCancel') && byId('mdCancel').addEventListener('click', ()=>{
+    materialsModalOpen = false; materialsDraft = null; render();
+  });
+  byId('mdSave') && byId('mdSave').addEventListener('click', ()=>{
+    const c = state.cases.find(x=>x.id===materialsDraft.caseId);
+    if(c){
+      c.materialsChecklist = materialsDraft.items;
+      touchCase(c.id);
+    }
+    materialsModalOpen = false; materialsDraft = null;
+    scheduleSave(); render();
+  });
+}
+
+/* ============ 備註提醒：跳出視窗 ============ */
+function timeSelectOptions(selectedHour){
+  let hourOpts = '';
+  for(let h=0; h<24; h++){
+    const hh = String(h).padStart(2,'0');
+    hourOpts += `<option value="${hh}" ${hh===selectedHour?'selected':''}>${hh}</option>`;
+  }
+  return hourOpts;
+}
+function remindersModalHtml(c){
+  const draft = remindersDraft;
+  const rows = draft.items.map(r=>{
+    const [rh, rm] = (r.time||'').split(':');
+    return `
+    <div class="modal-ext-row" data-id="${r.id}" style="flex-wrap:wrap; border:1px solid var(--card-line); border-radius:6px; padding:8px; margin-bottom:6px; justify-content:flex-start;">
+      <div style="flex:1 1 60%; min-width:180px;">
+        <label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">提醒內容</label>
+        <input type="text" class="rd-text" data-id="${r.id}" value="${escapeHtml(r.text||'')}">
+      </div>
+      <div style="flex:0 0 150px;">
+        <label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">提醒日期（選填）</label>
+        <input type="date" class="rd-date" data-id="${r.id}" value="${r.date||''}">
+      </div>
+      <div style="flex:0 0 150px;">
+        <label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">提醒時間（選填，24小時制）</label>
+        <div style="display:flex; align-items:center; gap:4px;">
+          <select class="rd-hour" data-id="${r.id}" style="min-width:64px;"><option value="">－</option>${timeSelectOptions(rh)}</select>
+          <span>：</span>
+          <select class="rd-min" data-id="${r.id}" style="min-width:64px;">
+            <option value="">－</option>
+            <option value="00" ${rm==='00'?'selected':''}>00</option>
+            <option value="30" ${rm==='30'?'selected':''}>30</option>
+          </select>
+        </div>
+      </div>
+      <div style="flex:1 1 100%;">
+        <label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">備註（選填）</label>
+        <input type="text" class="rd-note" data-id="${r.id}" value="${escapeHtml(r.note||'')}">
+      </div>
+      <label style="display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--ink-soft); margin:6px 0 0;">
+        <input type="checkbox" class="rd-done" data-id="${r.id}" ${r.done?'checked':''} style="width:auto;"> 已處理
+      </label>
+      <button class="rowdel" data-rd-del="${r.id}" title="刪除此筆" style="margin-left:auto; align-self:flex-start;">✕</button>
+    </div>`;
+  }).join('');
+  return `
+    <div class="modal-overlay" id="remindersModalOverlay">
+      <div class="modal-box">
+        <div class="modal-title">設定備註提醒</div>
+        <div class="card-hint" style="margin-bottom:10px;">有填提醒日期的話，當天(或之後)登入系統會跳出通知，跟期限提醒是同一套機制；時間僅供參考顯示，不影響跳出時機</div>
+        <div id="remindersDraftList">${rows || '<div class="card-hint" style="margin:0 0 8px;">尚無備註提醒</div>'}</div>
+        <button class="btn ghost" id="rdAddBtn" style="margin-top:4px;">＋ 新增提醒</button>
+        <div class="modal-actions">
+          <button class="btn ghost" id="rdCancel">取消</button>
+          <button class="btn" id="rdSave">儲存</button>
+        </div>
+      </div>
+    </div>`;
+}
+function bindRemindersModal(){
+  const byId = id => document.getElementById(id);
+  document.querySelectorAll('.rd-text').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      const r = remindersDraft.items.find(x=>x.id===inp.dataset.id);
+      if(r) r.text = inp.value;
+    });
+  });
+  document.querySelectorAll('.rd-date').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      const r = remindersDraft.items.find(x=>x.id===inp.dataset.id);
+      if(r) r.date = inp.value;
+    });
+  });
+  document.querySelectorAll('.rd-hour, .rd-min').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      const r = remindersDraft.items.find(x=>x.id===sel.dataset.id);
+      if(!r) return;
+      const hourSel = document.querySelector(`.rd-hour[data-id="${sel.dataset.id}"]`);
+      const minSel = document.querySelector(`.rd-min[data-id="${sel.dataset.id}"]`);
+      const h = hourSel ? hourSel.value : '';
+      const m = minSel ? minSel.value : '';
+      r.time = (h && m) ? `${h}:${m}` : '';
+    });
+  });
+  document.querySelectorAll('.rd-note').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      const r = remindersDraft.items.find(x=>x.id===inp.dataset.id);
+      if(r) r.note = inp.value;
+    });
+  });
+  document.querySelectorAll('.rd-done').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const r = remindersDraft.items.find(x=>x.id===cb.dataset.id);
+      if(r) r.done = cb.checked;
+    });
+  });
+  document.querySelectorAll('[data-rd-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      remindersDraft.items = remindersDraft.items.filter(x=>x.id!==btn.dataset.rdDel);
+      render();
+    });
+  });
+  byId('rdAddBtn') && byId('rdAddBtn').addEventListener('click', ()=>{
+    remindersDraft.items.push({id:uid(), text:"", date:"", time:"", note:"", done:false});
+    render();
+  });
+  byId('rdCancel') && byId('rdCancel').addEventListener('click', ()=>{
+    remindersModalOpen = false; remindersDraft = null; render();
+  });
+  byId('rdSave') && byId('rdSave').addEventListener('click', ()=>{
+    const caseId = remindersDraft.caseId;
+    state.reminders = getReminders().filter(r=>r.caseId!==caseId).concat(
+      remindersDraft.items.map(item=>({...item, caseId}))
+    );
+    remindersModalOpen = false; remindersDraft = null;
+    scheduleSave(); render();
+  });
+}
+
+function bindProgressModal(){
+  const byId = id => document.getElementById(id);
+  byId('pm_filingDate') && byId('pm_filingDate').addEventListener('input', e=>{ progressDraft.filingDate = e.target.value; });
+  byId('pm_viewCopy') && byId('pm_viewCopy').addEventListener('input', e=>{ progressDraft.viewCopy = e.target.value; });
+  byId('pm_finalCopy') && byId('pm_finalCopy').addEventListener('input', e=>{ progressDraft.finalCopy = e.target.value; });
+  byId('pm_note') && byId('pm_note').addEventListener('input', e=>{ progressDraft.note = e.target.value; });
+
+  [1,2,3].forEach(n=>{
+    const reviewEl = byId('pm_review'+n);
+    if(reviewEl) reviewEl.addEventListener('input', e=>{ progressDraft['review'+n] = e.target.value; });
+    const deadlineEl = byId('pm_deadline'+n);
+    if(deadlineEl) deadlineEl.addEventListener('input', e=>{ progressDraft['deadline'+n] = e.target.value; });
+    const reviseEl = byId('pm_revise'+n);
+    if(reviseEl) reviseEl.addEventListener('input', e=>{ progressDraft['revise'+n] = e.target.value; });
+  });
+
+  document.querySelectorAll('.pm-review-tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      progressModalReviewTab = btn.dataset.reviewTab;
+      render();
+    });
+  });
+
+  if(!progressDraft.extensions) progressDraft.extensions = [];
+
+  byId('pmAddExt') && byId('pmAddExt').addEventListener('click', ()=>{
+    progressDraft.extensions.push({id:uid(), reviewNo:progressModalReviewTab, date:"", newDeadline:"", note:""});
+    render();
+  });
+  document.querySelectorAll('.pm-ext-date').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const rec = progressDraft.extensions.find(x=>x.id===inp.dataset.extId);
+      if(rec) rec.date = e.target.value;
+    });
+  });
+  document.querySelectorAll('.pm-ext-newdeadline').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const rec = progressDraft.extensions.find(x=>x.id===inp.dataset.extId);
+      if(rec) rec.newDeadline = e.target.value;
+    });
+  });
+  document.querySelectorAll('[data-ext-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      progressDraft.extensions = progressDraft.extensions.filter(x=>x.id!==btn.dataset.extDel);
+      render();
+    });
+  });
+
+  byId('pmCancel') && byId('pmCancel').addEventListener('click', ()=>{
+    progressModalOpen = false;
+    progressDraft = null;
+    render();
+  });
+  byId('pmSave') && byId('pmSave').addEventListener('click', ()=>{
+    const caseId = progressDraft.caseId;
+    const existingIdx = state.progress.findIndex(p => p.caseId === caseId);
+    if(existingIdx >= 0){
+      state.progress[existingIdx] = Object.assign({}, state.progress[existingIdx], progressDraft);
+    } else {
+      state.progress.push(progressDraft);
+    }
+    touchCase(caseId);
+    progressModalOpen = false;
+    progressDraft = null;
+    scheduleSave();
+    render();
+  });
+}
+
+/* ============ 返回上一步：全域監聽 ============ */
+document.addEventListener('focusin', (e)=>{
+  if(!state) return;
+  const tag = e.target.tagName;
+  if(tag==='INPUT' || tag==='SELECT' || tag==='TEXTAREA'){
+    maybeSnapshot();
+  }
+});
+document.addEventListener('click', (e)=>{
+  if(!state) return;
+  const btn = e.target.closest('button');
+  if(btn && btn.id !== 'undoBtn' && btn.id !== 'loginSubmit'){
+    maybeSnapshot();
+  }
+});
+document.getElementById('undoBtn').addEventListener('click', doUndo);
+document.addEventListener('click', (e)=>{
+  if(!caseDropdownOpen) return;
+  if(e.target.closest('.cv-dropdown') || e.target.id === 'cvSearchInput') return;
+  caseDropdownOpen = false;
+  render();
+});
+
+/* ============ 啟動 ============ */
+(async function init(){
+  document.getElementById('cardArea').innerHTML = `<div class="empty">載入中…</div>`;
+  await tryAutoLogin();
+})();
+</script>
+</body>
+</html>
