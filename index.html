@@ -352,6 +352,16 @@ td.readonly{background:transparent !important;}
   .modal-actions .btn{flex:1; text-align:center;}
 
   .legend{gap:10px 14px; font-size:10.5px;}
+
+  /* 休假紀錄／工作日誌 手機版精修 */
+  .cv-section-head{flex-wrap:wrap; gap:8px;}
+  .rwd-formrow{flex-direction:column; align-items:stretch !important; gap:12px;}
+  .rwd-formrow > div{width:100% !important; max-width:none !important; min-width:0 !important;}
+  .rwd-formrow input, .rwd-formrow select{width:100% !important; box-sizing:border-box;}
+  .rwd-formrow .btn{width:100%;}
+  .rwd-filterbar{flex-direction:column; align-items:stretch !important; gap:10px;}
+  .rwd-filterbar > div{width:100% !important; min-width:0 !important;}
+  .rwd-filterbar input, .rwd-filterbar select{width:100% !important; box-sizing:border-box;}
 }
 
 @media (max-width:400px){
@@ -1112,7 +1122,7 @@ function annualLeaveTabHtml(lv){
       <div>已用：<b>${used}</b> 天</div>
       <div>剩餘：<b style="color:var(--teal);">${remain}</b> 天</div>
     </div>
-    <div style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; border-bottom:1px dashed var(--card-line); padding-bottom:16px;">
+    <div class="rwd-formrow" style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; border-bottom:1px dashed var(--card-line); padding-bottom:16px;">
       <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">日期</label><input type="date" id="lv_annualDate"></div>
       <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">單位</label>
         <select id="lv_annualUnit"><option value="day">天</option><option value="hour">小時</option></select>
@@ -1144,7 +1154,7 @@ function otherLeaveTabHtml(lv){
   const balance = overtimeBalanceHours();
   return `
     <div class="card-hint" style="margin-bottom:10px;">「補休」時數會從「加班時數」分頁累積的餘額扣抵，目前補休餘額：<b style="color:var(--teal);">${balance} 小時</b></div>
-    <div style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; border-bottom:1px dashed var(--card-line); padding-bottom:16px;">
+    <div class="rwd-formrow" style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; border-bottom:1px dashed var(--card-line); padding-bottom:16px;">
       <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">假別</label>
         <select id="lv_otherType">${OTHER_LEAVE_TYPES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
       </div>
@@ -1193,7 +1203,7 @@ function overtimeTabHtml(lv){
       <div>本年已用：<b>${used}</b> 小時</div>
       <div>年底餘額：<b style="color:var(--teal);">${yearEnd}</b> 小時</div>
     </div>
-    <div style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; border-bottom:1px dashed var(--card-line); padding-bottom:16px;">
+    <div class="rwd-formrow" style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; border-bottom:1px dashed var(--card-line); padding-bottom:16px;">
       <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">日期</label><input type="date" id="lv_overtimeDate"></div>
       <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">加班時數</label><input type="number" id="lv_overtimeHours" step="0.5" min="0.5" style="width:90px;"></div>
       <div style="flex:1; min-width:120px;"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">備註</label><input type="text" id="lv_overtimeNote"></div>
@@ -1372,7 +1382,7 @@ function journalView(){
   const showDone = journalDoneExpanded || !!q; // 有搜尋內容時強制展開已完成，避免搜到的結果被收合藏起來
 
   const filterBar = `
-    <div style="display:flex; gap:10px; margin:0 0 16px; flex-wrap:wrap; align-items:flex-end;">
+    <div class="rwd-filterbar" style="display:flex; gap:10px; margin:0 0 16px; flex-wrap:wrap; align-items:flex-end;">
       <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px; display:block;">年度</label>
         <select id="jnFilterYear">
           <option value="all" ${journalFilterYear==='all'?'selected':''}>全部</option>
