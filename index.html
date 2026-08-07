@@ -255,6 +255,7 @@ td.readonly{background:transparent !important;}
 .cv-summary{margin-top:14px;}
 .cv-section{margin-top:22px; padding-top:18px; border-top:1px solid var(--card-line);}
 .cv-section-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
+.jn-actions-bottom{display:none;}
 .cv-section-title{font-family:'Noto Serif TC', serif; font-size:12px; letter-spacing:0.05em; color:var(--teal); text-transform:uppercase; font-weight:600;}
 .cv-formgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:10px 12px;}
 .cv-field label{display:block; font-size:11px; color:var(--ink-soft); margin-bottom:4px; font-family:'Noto Serif TC', serif;}
@@ -313,11 +314,11 @@ td.readonly{background:transparent !important;}
   .subtitle{font-size:12px;}
   .savebar{font-size:10px;}
 
-  .tabs{gap:6px; margin-top:16px; flex-wrap:wrap;}
-  .tab{padding:8px 10px; font-size:11px; gap:5px;}
+  .tabs{gap:3px; margin-top:16px; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  #tabs .tab{padding:6px 3px; font-size:10px; gap:0; flex:1 1 0; min-width:0; justify-content:center; text-align:center;}
   .tab .idx{display:none;}
-  .tab{white-space:pre-line;}
-  .tab[data-tab="progressOverview"]{font-size:10px; padding-left:6px; padding-right:6px; letter-spacing:-0.3px; line-height:1.25;}
+  .tab-l2{display:block;}
+  #tabs .tab[data-tab="progressOverview"]{font-size:9px; letter-spacing:-0.3px;}
 
   #userInfo a{white-space:nowrap;}
 
@@ -361,6 +362,8 @@ td.readonly{background:transparent !important;}
   .cv-section-head{flex-wrap:wrap; gap:8px;}
   .jn-card-head{flex-direction:column; align-items:flex-start !important; gap:8px;}
   .jn-card-head > div{width:100%;}
+  .jn-actions-head{display:none !important;}
+  .jn-actions-bottom{display:flex !important;}
   .rwd-formrow{flex-direction:column; align-items:stretch !important; gap:12px;}
   .rwd-formrow > div{width:100% !important; max-width:none !important; min-width:0 !important;}
   .rwd-formrow input, .rwd-formrow select{width:100% !important; box-sizing:border-box;}
@@ -375,7 +378,8 @@ td.readonly{background:transparent !important;}
 
 @media (max-width:400px){
   h1{font-size:18px;}
-  .tab{font-size:10px; padding:7px 8px;}
+  #tabs .tab{font-size:9px; padding:5px 2px;}
+  #tabs .tab[data-tab="progressOverview"]{font-size:8.5px;}
   .card{padding:11px;}
   table{min-width:560px;}
 }
@@ -1348,19 +1352,23 @@ function journalEntryCardHtml(e){
     ? `<button class="btn ghost" data-jn-uncomplete="${e.id}">↺ 取消完成</button>`
     : `<button class="btn ghost" data-jn-complete="${e.id}">✓ 已完成</button>`;
   const doneBadge = e.completed ? `<span class="badge badge-grey" style="margin-left:8px;">已完成</span>` : '';
+  const actionsInner = `${completeBtn}
+          <button class="btn ghost" data-jn-edit="${e.id}">⚙ 編輯</button>
+          <button class="btn ghost" data-jn-del="${e.id}" style="color:var(--deadline-red);">刪除記錄</button>`;
   return `
     <div class="cv-section" style="margin-top:12px; padding-top:12px;">
       <div class="cv-section-head jn-card-head">
         <span class="cv-section-title" style="text-transform:none; display:inline-flex; align-items:center; gap:8px;"><span style="display:inline-block; background:var(--teal-soft); color:var(--ink); font-family:'Noto Serif TC', serif; font-size:14px; font-weight:700; padding:4px 12px; border-radius:6px;">${escapeHtml(e.caseName)}</span>${doneBadge}</span>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          ${completeBtn}
-          <button class="btn ghost" data-jn-edit="${e.id}">⚙ 編輯</button>
-          <button class="btn ghost" data-jn-del="${e.id}" style="color:var(--deadline-red);">刪除記錄</button>
+        <div class="jn-actions-head" style="display:flex; gap:6px; flex-wrap:wrap;">
+          ${actionsInner}
         </div>
       </div>
       ${dateLine}
       ${itemsHtml}
       ${noteHtml}
+      <div class="jn-actions-bottom" style="gap:6px; flex-wrap:wrap; margin-top:10px;">
+        ${actionsInner}
+      </div>
     </div>`;
 }
 
@@ -2412,18 +2420,18 @@ function progressModalHtml(c){
 }
 /* ============ Tabs ============ */
 const BASE_TABS = [
-  {key:"cases", label:"結案總表"},
-  {key:"progressOverview", label:"進度總覽\n(執行中/暫停)"},
-  {key:"caseview", label:"各案總覽"},
+  {key:"cases", label:"<span class=\"tab-txt\">結案<span class=\"tab-l2\">總表</span></span>"},
+  {key:"progressOverview", label:"<span class=\"tab-txt\">進度總覽<span class=\"tab-l2\">(執行中/暫停)</span></span>"},
+  {key:"caseview", label:"<span class=\"tab-txt\">各案<span class=\"tab-l2\">總覽</span></span>"},
 ];
 function getTabs(){
   const tabs = BASE_TABS.slice();
   if(getSettings().journalEnabled){
-    tabs.push({key:"journal", label:"工作日誌"});
+    tabs.push({key:"journal", label:"<span class=\"tab-txt\">工作<span class=\"tab-l2\">日誌</span></span>"});
   }
-  tabs.push({key:"leave", label:"休假紀錄"});
+  tabs.push({key:"leave", label:"<span class=\"tab-txt\">休假<span class=\"tab-l2\">紀錄</span></span>"});
   if(getSettings().bonusEnabled){
-    tabs.push({key:"bonusKpi", label:"結案獎金"});
+    tabs.push({key:"bonusKpi", label:"<span class=\"tab-txt\">結案<span class=\"tab-l2\">獎金</span></span>"});
   }
   return tabs.map((t,i)=> Object.assign({}, t, {idx: String(i+1).padStart(2,'0')}));
 }
