@@ -355,6 +355,8 @@ td.readonly{background:transparent !important;}
 
   /* 休假紀錄／工作日誌 手機版精修 */
   .cv-section-head{flex-wrap:wrap; gap:8px;}
+  .jn-card-head{flex-direction:column; align-items:flex-start !important; gap:8px;}
+  .jn-card-head > div{width:100%;}
   .rwd-formrow{flex-direction:column; align-items:stretch !important; gap:12px;}
   .rwd-formrow > div{width:100% !important; max-width:none !important; min-width:0 !important;}
   .rwd-formrow input, .rwd-formrow select{width:100% !important; box-sizing:border-box;}
@@ -1344,7 +1346,7 @@ function journalEntryCardHtml(e){
   const doneBadge = e.completed ? `<span class="badge badge-grey" style="margin-left:8px;">已完成</span>` : '';
   return `
     <div class="cv-section" style="margin-top:12px; padding-top:12px;">
-      <div class="cv-section-head">
+      <div class="cv-section-head jn-card-head">
         <span class="cv-section-title" style="text-transform:none; display:inline-flex; align-items:center; gap:8px;"><span style="display:inline-block; background:var(--teal-soft); color:var(--ink); font-family:'Noto Serif TC', serif; font-size:14px; font-weight:700; padding:4px 12px; border-radius:6px;">${escapeHtml(e.caseName)}</span>${doneBadge}</span>
         <div style="display:flex; gap:6px; flex-wrap:wrap;">
           ${completeBtn}
