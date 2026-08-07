@@ -162,7 +162,7 @@ tfoot td{background:#F4F6F2;}
 tbody tr:nth-child(even) td{background:#F4F6F2;}
 tbody tr:hover td{background:var(--teal-soft);}
 
-input[type=text], input[type=date], input[type=password], select, textarea{
+input[type=text], input[type=date], input[type=password], input[type=number], select, textarea{
   font-family:'Noto Serif TC', serif;
   font-size:12px;
   color:var(--ink);
@@ -324,7 +324,7 @@ td.readonly{background:transparent !important;}
 
   .btn{padding:10px 14px; font-size:12px;}
 
-  input[type=text], input[type=date], input[type=password], select, textarea{
+  input[type=text], input[type=date], input[type=password], input[type=number], select, textarea{
     font-size:16px; /* 避免iOS Safari輸入框focus時自動放大畫面 */
     padding:8px 9px;
   }
@@ -403,7 +403,7 @@ const db = firebase.database();
 /* ============ 常數 ============ */
 const STAGES = ["掛件","第1次審查","第2次審查","第3次審查","檢視本","定稿本"];
 const CASE_STATUS = ["進行中","已結案","暫停"];
-const CASE_TYPES = ["水土保持計畫","加強山坡地雜項執照審查報告書","地下水補注地質敏感區"];
+const DEFAULT_CASE_TYPES = ["水土保持計畫","加強山坡地雜項執照審查報告書","地下水補注地質敏感區"];
 const DEFAULT_CATEGORY_OPTIONS = ["工廠","住宅","殯葬設施","農業整坡","寺廟","休閒農場"];
 const DEFAULT_MATERIALS_CHECKLIST = [
   "水土保持義務人相關資料",
@@ -501,7 +501,108 @@ function historicalCaseToRecord(r){
 }
 
 function blankState(){
-  return { cases: [], progress: [], contacts: [], docs: [], categoryOptions: DEFAULT_CATEGORY_OPTIONS.slice(), settings: {bonusEnabled:false, salaryByYear:{}}, reminders: [] };
+  return { cases: [], progress: [], contacts: [], docs: [], categoryOptions: DEFAULT_CATEGORY_OPTIONS.slice(), caseTypeOptions: DEFAULT_CASE_TYPES.slice(), settings: {bonusEnabled:false, salaryByYear:{}}, reminders: [], leave: {onboardDate:'', annual:[], other:[], overtime:[]}, journalEntries: [] };
+}
+/* ============ 休假紀錄表：資料存取與計算 ============ */
+function getLeave(){
+  if(!state.leave) state.leave = {onboardDate:'', annual:[], other:[], overtime:[]};
+  if(!state.leave.annual) state.leave.annual = [];
+  if(!state.leave.other) state.leave.other = [];
+  if(!state.leave.overtime) state.leave.overtime = [];
+  return state.leave;
+}
+const OTHER_LEAVE_TYPES = [['sick','病假'],['personal','事假'],['menstrual','生理假'],['comp','補休']];
+/* 特休天數級距（勞基法）：滿半年3天／滿1年7天／滿2年10天／滿3年14天／滿5年15天／滿10年16天起每滿1年+1天，上限30天 */
+function annualLeaveTierDays(svcYears){
+  if(svcYears < 0.5) return 0;
+  if(svcYears < 1) return 3;
+  if(svcYears < 2) return 7;
+  if(svcYears < 3) return 10;
+  if(svcYears < 5) return 14;
+  if(svcYears < 10) return 15;
+  return Math.min(16 + Math.floor(svcYears - 10), 30);
+}
+/* 以逐日加權平均的方式，把「到職週年制」的級距換算成「曆年制」該年度可休天數估算值（四捨五入到0.5天） */
+function calcAnnualEntitlement(onboardStr, year){
+  if(!onboardStr) return 0;
+  const onboard = new Date(onboardStr + 'T00:00:00');
+  if(isNaN(onboard.getTime())) return 0;
+  const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  const daysInYear = isLeap ? 366 : 365;
+  let sum = 0;
+  for(let i = 0; i < daysInYear; i++){
+    const cur = new Date(year, 0, 1 + i);
+    if(cur < onboard) continue;
+    const svcYears = (cur - onboard) / (365.25 * 86400000);
+    sum += annualLeaveTierDays(svcYears);
+  }
+  return Math.ceil(sum / daysInYear); /* 無條件進位到整天 */
+}
+function leaveDaysEquivalent(amount, unit){
+  const n = parseFloat(amount) || 0;
+  return unit === 'hour' ? n / 8 : n; /* 以每日8小時折算 */
+}
+function annualUsedForYear(year){
+  return getLeave().annual.filter(r => (r.date||'').startsWith(String(year)))
+    .reduce((s,r) => s + leaveDaysEquivalent(r.amount, r.unit), 0);
+}
+function overtimeHoursTotal(){
+  return getLeave().overtime.reduce((s,r) => s + (parseFloat(r.hours)||0), 0);
+}
+function compUsedHoursTotal(){
+  return getLeave().other.filter(r => r.type === 'comp')
+    .reduce((s,r) => s + (r.unit === 'hour' ? (parseFloat(r.amount)||0) : (parseFloat(r.amount)||0) * 8), 0);
+}
+function overtimeBalanceHours(){
+  return Math.round((overtimeHoursTotal() - compUsedHoursTotal()) * 2) / 2;
+}
+/* 加班時數／補休以「年度」呈現但不歸零：前一年12/31沒用完的餘額，會結轉到隔年年初繼續使用 */
+function overtimeEarnedInYear(year){
+  return getLeave().overtime.filter(r => (r.date||'').slice(0,4) === String(year))
+    .reduce((s,r) => s + (parseFloat(r.hours)||0), 0);
+}
+function overtimeEarnedBeforeYear(year){
+  return getLeave().overtime.filter(r => (r.date||'').slice(0,4) && (r.date||'').slice(0,4) < String(year))
+    .reduce((s,r) => s + (parseFloat(r.hours)||0), 0);
+}
+function compUsedInYear(year){
+  return getLeave().other.filter(r => r.type === 'comp' && (r.date||'').slice(0,4) === String(year))
+    .reduce((s,r) => s + (r.unit === 'hour' ? (parseFloat(r.amount)||0) : (parseFloat(r.amount)||0) * 8), 0);
+}
+function compUsedBeforeYear(year){
+  return getLeave().other.filter(r => r.type === 'comp' && (r.date||'').slice(0,4) && (r.date||'').slice(0,4) < String(year))
+    .reduce((s,r) => s + (r.unit === 'hour' ? (parseFloat(r.amount)||0) : (parseFloat(r.amount)||0) * 8), 0);
+}
+function overtimeCarryInForYear(year){
+  return Math.round((overtimeEarnedBeforeYear(year) - compUsedBeforeYear(year)) * 2) / 2;
+}
+function overtimeYearEndBalance(year){
+  return Math.round((overtimeCarryInForYear(year) + overtimeEarnedInYear(year) - compUsedInYear(year)) * 2) / 2;
+}
+/* ============ 工作日誌：資料存取 ============ */
+function getJournalEntries(){
+  if(!state.journalEntries){
+    const entries = [];
+    const byCase = new Map();
+    const pushLines = (caseName, content) => {
+      const name = (caseName||'').trim() || '（未命名）';
+      let e = byCase.get(name);
+      if(!e){ e = {id:uid(), caseName:name, items:[]}; byCase.set(name, e); entries.push(e); }
+      String(content||'').split('\n').map(s=>s.trim()).filter(Boolean).forEach(line=>{
+        e.items.push({id:uid(), text:line});
+      });
+    };
+    // 相容舊版本資料格式，自動搬遷一次
+    if(Array.isArray(state.journalItems)){
+      state.journalItems.forEach(it => pushLines(it.caseName, it.content));
+      delete state.journalItems;
+    } else if(Array.isArray(state.journal)){
+      state.journal.forEach(dayEntry => (dayEntry.items||[]).forEach(it => pushLines(it.caseName, it.content)));
+      delete state.journal;
+    }
+    state.journalEntries = entries;
+  }
+  return state.journalEntries;
 }
 function getReminders(){
   if(!state.reminders) state.reminders = [];
@@ -511,7 +612,8 @@ function getRemindersForCase(caseId){
   return getReminders().filter(r=>r.caseId===caseId);
 }
 function getSettings(){
-  if(!state.settings) state.settings = {bonusEnabled:false};
+  if(!state.settings) state.settings = {bonusEnabled:false, journalEnabled:false};
+  if(state.settings.journalEnabled === undefined) state.settings.journalEnabled = false;
   return state.settings;
 }
 /* 月薪依年度個別設定（因為每年薪資可能不同），存在 settings.salaryByYear = { "2026": "60000", ... } */
@@ -546,6 +648,29 @@ function removeCategoryOption(name){
   if(idx === -1) return false;
   opts.splice(idx, 1);
   state.cases.forEach(c=>{ if(c.category === name) c.category = ""; });
+  return true;
+}
+function getCaseTypeOptions(){
+  if(!state.caseTypeOptions || !state.caseTypeOptions.length){
+    state.caseTypeOptions = DEFAULT_CASE_TYPES.slice();
+  }
+  return state.caseTypeOptions;
+}
+function addCaseTypeOption(name){
+  const trimmed = (name||'').trim();
+  if(!trimmed) return false;
+  const opts = getCaseTypeOptions();
+  if(opts.includes(trimmed)) return false;
+  opts.push(trimmed);
+  return true;
+}
+function removeCaseTypeOption(name){
+  if(!name) return false;
+  const opts = getCaseTypeOptions();
+  const idx = opts.indexOf(name);
+  if(idx === -1) return false;
+  opts.splice(idx, 1);
+  state.cases.forEach(c=>{ if(c.caseType === name) c.caseType = ""; });
   return true;
 }
 function getReviewAgencyOptions(){
@@ -657,6 +782,131 @@ async function sha256Hex(str){
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
+/* ============ 管理者頁面（列出所有代號、可刪除不用的帳號） ============
+   進入方式：網址後面加 #admin，例如 https://xxx.github.io/SWCP/#admin
+   密碼預設是 water2026admin（僅供示範），強烈建議自行更換：
+   在瀏覽器打開這個網頁後，按F12開console，貼上：
+   await sha256Hex('你想要的新密碼')
+   把印出來的一長串英數字，貼到下面 ADMIN_PASSWORD_HASH 常數取代掉即可，密碼本身不會存在程式碼裡 */
+const ADMIN_PASSWORD_HASH = "17be0145d9fe53fd20c4be3c5865499eb0e6920597bb64a3842f9fb8b9c464a3";
+
+function adminLoginScreenHtml(errorMsg){
+  return `
+    <div style="max-width:380px; margin:40px auto;">
+      <div class="card-title" style="margin-bottom:4px;">管理者登入</div>
+      <div class="card-hint" style="margin-bottom:16px;">此頁面可以列出所有已註冊的代號，並清除不再使用的帳號資料。</div>
+      ${errorMsg ? `<div style="color:var(--clay); font-size:12.5px; margin-bottom:10px;">${escapeHtml(errorMsg)}</div>` : ''}
+      <div class="modal-row">
+        <label>管理者密碼</label>
+        <input type="password" id="adminPassword" placeholder="">
+      </div>
+      <button class="btn" id="adminLoginSubmit" style="width:100%; padding:10px;">登入</button>
+      <div style="text-align:center; margin-top:14px;"><a href="#" id="adminBackToLogin" style="color:var(--teal); font-size:12px;">← 回一般登入畫面</a></div>
+    </div>`;
+}
+function renderAdminLogin(errorMsg){
+  document.getElementById('tabs').innerHTML = '';
+  document.getElementById('userInfo').innerHTML = '';
+  document.getElementById('cardArea').innerHTML = adminLoginScreenHtml(errorMsg);
+  const submit = document.getElementById('adminLoginSubmit');
+  const pwEl = document.getElementById('adminPassword');
+  const doSubmit = async () => {
+    const pw = (pwEl.value||'').trim();
+    if(!pw){ renderAdminLogin('請輸入密碼'); return; }
+    const hash = await sha256Hex(pw);
+    if(hash !== ADMIN_PASSWORD_HASH){
+      renderAdminLogin('密碼錯誤');
+      return;
+    }
+    await renderAdminPanel();
+  };
+  submit.addEventListener('click', doSubmit);
+  pwEl.addEventListener('keydown', e=>{ if(e.key==='Enter') doSubmit(); });
+  document.getElementById('adminBackToLogin').addEventListener('click', (e)=>{
+    e.preventDefault();
+    location.hash = '';
+    renderLoginScreen();
+  });
+}
+
+async function renderAdminPanel(){
+  document.getElementById('cardArea').innerHTML = `<div class="empty">載入中…</div>`;
+  let entries = [];
+  try{
+    const snap = await db.ref('codes').once('value');
+    if(snap.exists()){
+      const val = snap.val();
+      entries = Object.keys(val).map(key=>{
+        const v = val[key];
+        // 相容舊格式：舊資料的value直接是代號字串本身（沒有docId/updatedAt）
+        if(typeof v === 'string'){
+          return { key, code: v, docId: null, updatedAt: null };
+        }
+        return { key, code: v.code, docId: v.docId||null, updatedAt: v.updatedAt||null };
+      });
+      entries.sort((a,b)=> (b.updatedAt||0) - (a.updatedAt||0));
+    }
+  }catch(e){
+    document.getElementById('cardArea').innerHTML = `<div class="empty">讀取失敗，請確認網路連線後重新整理頁面重試</div>`;
+    return;
+  }
+  document.getElementById('cardArea').innerHTML = adminPanelHtml(entries);
+  bindAdminPanel();
+}
+
+function adminPanelHtml(entries){
+  const rows = entries.map(e=>{
+    const timeStr = e.updatedAt ? new Date(e.updatedAt).toLocaleString('zh-TW', {hour12:false}) : '（尚無登入紀錄，可能是舊資料）';
+    const noteStr = e.docId ? '' : `<div class="card-hint" style="margin-top:2px; color:var(--amber);">此筆缺少帳號對應資訊，刪除只會釋放代號名稱，不會清除實際資料（該代號下次登入後才能完整清除）</div>`;
+    return `<tr>
+      <td class="readonly" style="font-weight:700;">${escapeHtml(e.code)}</td>
+      <td class="readonly" style="white-space:nowrap;">${escapeHtml(timeStr)}${noteStr}</td>
+      <td class="readonly" style="text-align:right;"><button class="btn ghost" data-admin-del="${escapeHtml(e.key)}" data-admin-del-code="${escapeHtml(e.code)}" data-admin-del-docid="${e.docId?escapeHtml(e.docId):''}" style="color:var(--deadline-red); border-color:var(--deadline-red-soft);">✕ 刪除</button></td>
+    </tr>`;
+  }).join('');
+  return `
+    <div class="card-top">
+      <div><div class="card-title">管理者頁面</div><div class="card-hint">目前共 ${entries.length} 個已註冊代號</div></div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="btn ghost" id="adminRefresh">⟲ 重新整理</button>
+        <a href="#" id="adminLogout" style="color:var(--deadline-red); font-size:12px;">登出管理者</a>
+      </div>
+    </div>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>代號</th><th>最後登入時間</th><th style="text-align:right;">操作</th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="3" class="empty">尚無任何已註冊代號</td></tr>`}</tbody>
+    </table></div>`;
+}
+
+function bindAdminPanel(){
+  document.getElementById('adminRefresh') && document.getElementById('adminRefresh').addEventListener('click', renderAdminPanel);
+  document.getElementById('adminLogout') && document.getElementById('adminLogout').addEventListener('click', (e)=>{
+    e.preventDefault();
+    location.hash = '';
+    renderLoginScreen();
+  });
+  document.querySelectorAll('[data-admin-del]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const key = btn.getAttribute('data-admin-del');
+      const code = btn.getAttribute('data-admin-del-code');
+      const docId = btn.getAttribute('data-admin-del-docid');
+      const confirmMsg = docId
+        ? `確定要刪除代號「${code}」嗎？這會把該帳號的所有案件資料永久清除，無法復原。`
+        : `確定要釋放代號「${code}」嗎？（這筆缺少帳號對應資訊，只會讓這個代號名稱可以被重新註冊，不會刪除任何案件資料）`;
+      if(!confirm(confirmMsg)) return;
+      btn.disabled = true; btn.textContent = '處理中…';
+      try{
+        await db.ref('codes/' + key).remove();
+        if(docId) await db.ref('users/' + docId).remove();
+        await renderAdminPanel();
+      }catch(e){
+        alert('刪除失敗，請確認網路連線後重試');
+        btn.disabled = false; btn.textContent = '✕ 刪除';
+      }
+    });
+  });
+}
+
 function loginScreenHtml(errorMsg){
   return `
     <div style="max-width:380px; margin:40px auto;">
@@ -714,9 +964,9 @@ async function isCodeTaken(code){
   const snap = await db.ref('codes/' + key).once('value');
   return snap.exists();
 }
-async function registerCode(code){
+async function registerCode(code, docId){
   const key = await codeRegistryKey(code);
-  await db.ref('codes/' + key).set(code);
+  await db.ref('codes/' + key).set({ code, docId: docId||null, updatedAt: firebase.database.ServerValue.TIMESTAMP });
 }
 async function unregisterCode(code){
   const key = await codeRegistryKey(code);
@@ -732,13 +982,12 @@ async function enterWithDocId(docId, code){
     if(snap.exists()){
       const data = snap.val();
       state = data.state ? JSON.parse(data.state) : blankState();
-      // 補登記：舊帳號可能是加入代號登記機制之前建立的，登入時順便補上
-      const taken = await isCodeTaken(code);
-      if(!taken) await registerCode(code);
+      // 每次登入都重新登記代號→docId對應（順便更新最後登入時間），管理者頁面靠這個資料列出帳號清單
+      await registerCode(code, docId);
     } else {
       state = blankState();
       await db.ref('users/' + docId).set({ state: JSON.stringify(state), updatedAt: firebase.database.ServerValue.TIMESTAMP });
-      await registerCode(code);
+      await registerCode(code, docId);
     }
     localStorage.setItem(LOCAL_KEY, JSON.stringify({docId, code}));
     renderUserInfoBar(code);
@@ -775,6 +1024,10 @@ function settingsModalHtml(){
           <input type="checkbox" id="stBonusEnabled" style="width:auto;" ${s.bonusEnabled?'checked':''}> 啟用「結案獎金」功能
         </label>
         <div class="card-hint" style="margin-bottom:10px;">啟用後，「各案總覽」的基本資料會多一個「服務費」欄位，並會出現「結案獎金」分頁。獎金＝服務費×4%；年度目標＝月薪×36（月薪在「結案獎金」分頁裡依年度個別設定，因為每年薪資可能不同）；分頁裡會顯示年度完成率，也可以記錄老闆每次實際匯款的日期與金額。</div>
+        <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--ink); margin-bottom:12px;">
+          <input type="checkbox" id="stJournalEnabled" style="width:auto;" ${s.journalEnabled?'checked':''}> 啟用「工作日誌」功能
+        </label>
+        <div class="card-hint" style="margin-bottom:10px;">啟用後會出現「工作日誌」分頁，可以自己決定要不要用，記錄每天處理過的案件/事項，僅自己看得到。</div>
         <div class="modal-actions">
           <button class="btn ghost" id="stCancel">取消</button>
           <button class="btn" id="stSave">儲存</button>
@@ -797,8 +1050,523 @@ function bindSettingsModal(){
   document.getElementById('stSave') && document.getElementById('stSave').addEventListener('click', ()=>{
     const s = getSettings();
     s.bonusEnabled = document.getElementById('stBonusEnabled').checked;
+    s.journalEnabled = document.getElementById('stJournalEnabled').checked;
     scheduleSave(true);
     closeSettingsModal();
+    render();
+  });
+}
+
+/* ============ 05 休假紀錄（分頁） ============ */
+let leaveViewTab = 'annual'; // 'annual' | 'other' | 'overtime'
+let leaveViewYear = new Date().getFullYear();
+
+function leaveView(){
+  const lv = getLeave();
+  const tabDefs = [['annual','特休'],['other','假別'],['overtime','加班時數']];
+  const subTabs = tabDefs.map(([v,label]) => `
+    <button type="button" class="tab lv-tab ${v===leaveViewTab?'active':''}" data-lv-tab="${v}" style="border-radius:6px; transform:none; padding:7px 14px;">
+      <span class="idx">${label}</span>
+    </button>`).join('');
+  let body;
+  if(leaveViewTab === 'annual') body = annualLeaveTabHtml(lv);
+  else if(leaveViewTab === 'other') body = otherLeaveTabHtml(lv);
+  else body = overtimeTabHtml(lv);
+
+  return `
+    <div class="card-top">
+      <div><div class="card-title">休假紀錄</div></div>
+    </div>
+    <div class="cv-field" style="max-width:260px; margin-bottom:14px;">
+      <label>到職日期</label>
+      <input type="date" id="lv_onboardDate" value="${escapeHtml(lv.onboardDate||'')}">
+    </div>
+    <div style="display:flex; gap:8px; margin:0 0 16px; flex-wrap:wrap;">${subTabs}</div>
+    <div id="leaveTabBody">${body}</div>`;
+}
+
+function annualLeaveTabHtml(lv){
+  const curYear = new Date().getFullYear();
+  const years = []; for(let y = curYear-2; y <= curYear+1; y++) years.push(y);
+  const entitlement = calcAnnualEntitlement(lv.onboardDate, leaveViewYear);
+  const used = annualUsedForYear(leaveViewYear);
+  const remain = Math.round((entitlement - used) * 2) / 2;
+  const rows = lv.annual.filter(r => (r.date||'').startsWith(String(leaveViewYear)))
+    .sort((a,b) => (a.date||'').localeCompare(b.date||''))
+    .map(r => `
+    <tr>
+      <td>${escapeHtml(r.date||'')}</td>
+      <td>${escapeHtml(String(r.amount||''))}${r.unit==='hour'?' 小時':' 天'}</td>
+      <td><input type="text" class="lv-note-edit" data-lv-note-kind="annual" data-lv-note-id="${r.id}" value="${escapeHtml(r.note||'')}"></td>
+      <td><button class="rowdel" data-lv-annual-del="${r.id}" title="刪除">✕</button></td>
+    </tr>`).join('');
+
+  return `
+    <div class="card-hint" style="margin-bottom:10px;">依勞基法級距換算為曆年制的估算天數，僅供參考，正式天數以公司公告為準。</div>
+    <div class="cv-field" style="max-width:160px; margin-bottom:10px;">
+      <label>檢視年度</label>
+      <select id="lv_year">${years.map(y=>`<option value="${y}" ${y===leaveViewYear?'selected':''}>${y}</option>`).join('')}</select>
+    </div>
+    <div style="display:flex; gap:16px; margin:10px 0 14px; font-size:13px; flex-wrap:wrap;">
+      <div>可休：<b>${entitlement}</b> 天</div>
+      <div>已用：<b>${used}</b> 天</div>
+      <div>剩餘：<b style="color:var(--teal);">${remain}</b> 天</div>
+    </div>
+    <div style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; border-bottom:1px dashed var(--card-line); padding-bottom:16px;">
+      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">日期</label><input type="date" id="lv_annualDate"></div>
+      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">單位</label>
+        <select id="lv_annualUnit"><option value="day">天</option><option value="hour">小時</option></select>
+      </div>
+      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">數量</label>
+        <select id="lv_annualDayAmount"><option value="0.5">0.5</option><option value="1" selected>1</option></select>
+        <input type="number" id="lv_annualHourAmount" step="0.5" min="0.5" style="display:none; width:80px;" placeholder="小時">
+      </div>
+      <div style="flex:1; min-width:120px;"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">備註</label><input type="text" id="lv_annualNote"></div>
+      <button class="btn" id="lv_annualAdd">＋ 新增</button>
+    </div>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>日期</th><th>天數/時數</th><th>備註</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="4" class="card-hint">尚無請休紀錄</td></tr>'}</tbody>
+    </table></div>`;
+}
+
+function otherLeaveTabHtml(lv){
+  const typeLabel = t => (OTHER_LEAVE_TYPES.find(x=>x[0]===t)||['','?'])[1];
+  const rows = lv.other.slice().sort((a,b) => (a.date||'').localeCompare(b.date||''))
+    .map(r => `
+    <tr>
+      <td>${escapeHtml(r.date||'')}</td>
+      <td>${typeLabel(r.type)}</td>
+      <td>${escapeHtml(String(r.amount||''))}${r.unit==='hour'?' 小時':' 天'}</td>
+      <td><input type="text" class="lv-note-edit" data-lv-note-kind="other" data-lv-note-id="${r.id}" value="${escapeHtml(r.note||'')}"></td>
+      <td><button class="rowdel" data-lv-other-del="${r.id}" title="刪除">✕</button></td>
+    </tr>`).join('');
+  const balance = overtimeBalanceHours();
+  return `
+    <div class="card-hint" style="margin-bottom:10px;">「補休」時數會從「加班時數」分頁累積的餘額扣抵，目前補休餘額：<b style="color:var(--teal);">${balance} 小時</b></div>
+    <div style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; border-bottom:1px dashed var(--card-line); padding-bottom:16px;">
+      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">假別</label>
+        <select id="lv_otherType">${OTHER_LEAVE_TYPES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
+      </div>
+      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">日期</label><input type="date" id="lv_otherDate"></div>
+      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">單位</label>
+        <select id="lv_otherUnit"><option value="day">天</option><option value="hour">小時</option></select>
+      </div>
+      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">數量</label>
+        <select id="lv_otherDayAmount"><option value="0.5">0.5</option><option value="1" selected>1</option></select>
+        <input type="number" id="lv_otherHourAmount" step="0.5" min="0.5" style="display:none; width:80px;" placeholder="小時">
+      </div>
+      <div style="flex:1; min-width:120px;"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">備註</label><input type="text" id="lv_otherNote"></div>
+      <button class="btn" id="lv_otherAdd">＋ 新增</button>
+    </div>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>日期</th><th>假別</th><th>天數/時數</th><th>備註</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5" class="card-hint">尚無請假紀錄</td></tr>'}</tbody>
+    </table></div>`;
+}
+
+function overtimeTabHtml(lv){
+  const curYear = new Date().getFullYear();
+  const years = []; for(let y = curYear-2; y <= curYear+1; y++) years.push(y);
+  const rows = lv.overtime.filter(r => (r.date||'').startsWith(String(leaveViewYear)))
+    .sort((a,b) => (a.date||'').localeCompare(b.date||''))
+    .map(r => `
+    <tr>
+      <td>${escapeHtml(r.date||'')}</td>
+      <td>${escapeHtml(String(r.hours||''))} 小時</td>
+      <td><input type="text" class="lv-note-edit" data-lv-note-kind="overtime" data-lv-note-id="${r.id}" value="${escapeHtml(r.note||'')}"></td>
+      <td><button class="rowdel" data-lv-overtime-del="${r.id}" title="刪除">✕</button></td>
+    </tr>`).join('');
+  const carryIn = overtimeCarryInForYear(leaveViewYear);
+  const earned = overtimeEarnedInYear(leaveViewYear);
+  const used = compUsedInYear(leaveViewYear);
+  const yearEnd = overtimeYearEndBalance(leaveViewYear);
+  return `
+    <div class="card-hint" style="margin-bottom:10px;">補休沒有年度歸零，12/31還沒用完的餘額會自動結轉到隔年繼續使用。</div>
+    <div class="cv-field" style="max-width:160px; margin-bottom:10px;">
+      <label>檢視年度</label>
+      <select id="lv_overtimeYear">${years.map(y=>`<option value="${y}" ${y===leaveViewYear?'selected':''}>${y}</option>`).join('')}</select>
+    </div>
+    <div style="display:flex; gap:16px; margin:10px 0 14px; font-size:13px; flex-wrap:wrap;">
+      <div>年初結轉：<b>${carryIn}</b> 小時</div>
+      <div>本年新增：<b>${earned}</b> 小時</div>
+      <div>本年已用：<b>${used}</b> 小時</div>
+      <div>年底餘額：<b style="color:var(--teal);">${yearEnd}</b> 小時</div>
+    </div>
+    <div style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; border-bottom:1px dashed var(--card-line); padding-bottom:16px;">
+      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">日期</label><input type="date" id="lv_overtimeDate"></div>
+      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">加班時數</label><input type="number" id="lv_overtimeHours" step="0.5" min="0.5" style="width:90px;"></div>
+      <div style="flex:1; min-width:120px;"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">備註</label><input type="text" id="lv_overtimeNote"></div>
+      <button class="btn" id="lv_overtimeAdd">＋ 新增</button>
+    </div>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>日期</th><th>時數</th><th>備註</th><th></th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="4" class="card-hint">這個年度尚無加班紀錄</td></tr>'}</tbody>
+    </table></div>`;
+}
+
+function bindLeaveView(){
+  const byId = id => document.getElementById(id);
+  if(!byId('lv_onboardDate')) return; // 目前不在此分頁，不需綁定
+  byId('lv_onboardDate').addEventListener('change', e=>{
+    getLeave().onboardDate = e.target.value;
+    scheduleSave(true);
+    render();
+  });
+  document.querySelectorAll('.lv-tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      leaveViewTab = btn.getAttribute('data-lv-tab');
+      render();
+    });
+  });
+  document.querySelectorAll('.lv-note-edit').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      const kind = inp.dataset.lvNoteKind, id = inp.dataset.lvNoteId;
+      const arr = getLeave()[kind];
+      const rec = arr && arr.find(r=>r.id===id);
+      if(rec){ rec.note = inp.value; scheduleSave(); }
+    });
+  });
+
+  if(leaveViewTab === 'annual'){
+    byId('lv_year') && byId('lv_year').addEventListener('change', e=>{
+      leaveViewYear = parseInt(e.target.value, 10);
+      render();
+    });
+    byId('lv_annualUnit') && byId('lv_annualUnit').addEventListener('change', e=>{
+      const isHour = e.target.value === 'hour';
+      byId('lv_annualDayAmount').style.display = isHour ? 'none' : '';
+      byId('lv_annualHourAmount').style.display = isHour ? '' : 'none';
+    });
+    byId('lv_annualAdd') && byId('lv_annualAdd').addEventListener('click', ()=>{
+      const date = byId('lv_annualDate').value;
+      if(!date){ alert('請選擇日期'); return; }
+      if(getLeave().annual.some(r=>r.date===date)){ alert('這個日期已經有特休紀錄了，請選擇其他日期'); return; }
+      const unit = byId('lv_annualUnit').value;
+      const amount = unit === 'hour' ? byId('lv_annualHourAmount').value : byId('lv_annualDayAmount').value;
+      if(!amount || parseFloat(amount) <= 0){ alert('請輸入天數或時數'); return; }
+      const note = byId('lv_annualNote').value;
+      getLeave().annual.push({id:uid(), date, amount, unit, note});
+      leaveViewYear = parseInt(date.slice(0,4), 10);
+      scheduleSave(true);
+      render();
+    });
+    document.querySelectorAll('[data-lv-annual-del]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = btn.getAttribute('data-lv-annual-del');
+        getLeave().annual = getLeave().annual.filter(r=>r.id!==id);
+        scheduleSave(true);
+        render();
+      });
+    });
+  } else if(leaveViewTab === 'other'){
+    byId('lv_otherUnit') && byId('lv_otherUnit').addEventListener('change', e=>{
+      const isHour = e.target.value === 'hour';
+      byId('lv_otherDayAmount').style.display = isHour ? 'none' : '';
+      byId('lv_otherHourAmount').style.display = isHour ? '' : 'none';
+    });
+    byId('lv_otherAdd') && byId('lv_otherAdd').addEventListener('click', ()=>{
+      const date = byId('lv_otherDate').value;
+      const type = byId('lv_otherType').value;
+      if(!date){ alert('請選擇日期'); return; }
+      if(getLeave().other.some(r=>r.date===date)){ alert('這個日期已經有請假紀錄了，請選擇其他日期'); return; }
+      const unit = byId('lv_otherUnit').value;
+      const amount = unit === 'hour' ? byId('lv_otherHourAmount').value : byId('lv_otherDayAmount').value;
+      if(!amount || parseFloat(amount) <= 0){ alert('請輸入天數或時數'); return; }
+      const note = byId('lv_otherNote').value;
+      getLeave().other.push({id:uid(), type, date, amount, unit, note});
+      scheduleSave(true);
+      render();
+    });
+    document.querySelectorAll('[data-lv-other-del]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = btn.getAttribute('data-lv-other-del');
+        getLeave().other = getLeave().other.filter(r=>r.id!==id);
+        scheduleSave(true);
+        render();
+      });
+    });
+  } else {
+    byId('lv_overtimeYear') && byId('lv_overtimeYear').addEventListener('change', e=>{
+      leaveViewYear = parseInt(e.target.value, 10);
+      render();
+    });
+    byId('lv_overtimeAdd') && byId('lv_overtimeAdd').addEventListener('click', ()=>{
+      const date = byId('lv_overtimeDate').value;
+      const hours = byId('lv_overtimeHours').value;
+      if(!date){ alert('請選擇日期'); return; }
+      if(getLeave().overtime.some(r=>r.date===date)){ alert('這個日期已經有加班紀錄了，請選擇其他日期'); return; }
+      if(!hours || parseFloat(hours) <= 0){ alert('請輸入時數'); return; }
+      const note = byId('lv_overtimeNote').value;
+      getLeave().overtime.push({id:uid(), date, hours, note});
+      leaveViewYear = parseInt(date.slice(0,4), 10);
+      scheduleSave(true);
+      render();
+    });
+    document.querySelectorAll('[data-lv-overtime-del]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = btn.getAttribute('data-lv-overtime-del');
+        getLeave().overtime = getLeave().overtime.filter(r=>r.id!==id);
+        scheduleSave(true);
+        render();
+      });
+    });
+  }
+}
+
+/* ============ 04 工作日誌（分頁，個人設定啟用後才顯示） ============ */
+let journalModalOpen = false;
+let journalDraft = null;
+let journalDoneExpanded = false;
+
+function journalEntryCardHtml(e){
+  const itemsHtml = e.items.length
+    ? `<ul style="margin:6px 0 0 20px; padding:0; font-size:13px; line-height:1.0; list-style:disc;">${e.items.map(it=>`<li style="margin-bottom:2px;">${escapeHtml(it.text)}</li>`).join('')}</ul>`
+    : '<div class="card-hint" style="margin:4px 0 0;">尚無事項</div>';
+  const dateLine = e.date ? `<div class="card-hint" style="margin:2px 0 0;">${escapeHtml(e.date)}</div>` : '';
+  const noteHtml = e.note ? `<div style="margin-top:8px; padding-top:6px; border-top:1px dashed var(--card-line); font-size:12.5px; color:var(--ink-soft); white-space:pre-line;">備註：${escapeHtml(e.note)}</div>` : '';
+  const completeBtn = e.completed
+    ? `<button class="btn ghost" data-jn-uncomplete="${e.id}">↺ 取消完成</button>`
+    : `<button class="btn ghost" data-jn-complete="${e.id}">✓ 已完成</button>`;
+  const doneBadge = e.completed ? `<span class="badge badge-grey" style="margin-left:8px;">已完成</span>` : '';
+  return `
+    <div class="cv-section" style="margin-top:12px; padding-top:12px;">
+      <div class="cv-section-head">
+        <span class="cv-section-title" style="text-transform:none; display:inline-flex; align-items:center; gap:8px;"><span style="display:inline-block; background:var(--teal-soft); color:var(--ink); font-family:'Noto Serif TC', serif; font-size:14px; font-weight:700; padding:4px 12px; border-radius:6px;">${escapeHtml(e.caseName)}</span>${doneBadge}</span>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          ${completeBtn}
+          <button class="btn ghost" data-jn-edit="${e.id}">⚙ 編輯</button>
+          <button class="btn ghost" data-jn-del="${e.id}" style="color:var(--deadline-red);">刪除記錄</button>
+        </div>
+      </div>
+      ${dateLine}
+      ${itemsHtml}
+      ${noteHtml}
+    </div>`;
+}
+
+let journalFilterYear = 'all';
+let journalFilterMonth = 'all';
+let journalSearchQuery = '';
+
+function journalView(){
+  const allEntries = getJournalEntries();
+  const years = Array.from(new Set(allEntries.map(e=>(e.date||'').slice(0,4)).filter(Boolean))).sort((a,b)=>b.localeCompare(a));
+  const curYear = String(new Date().getFullYear());
+  if(!years.includes(curYear)) years.unshift(curYear);
+
+  const q = journalSearchQuery.trim().toLowerCase();
+  const matchesFilter = e => {
+    if(q){
+      const hay = [e.caseName, e.note, ...(e.items||[]).map(it=>it.text)].join(' ').toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    if(!e.date) return true; // 沒填時間的記錄不受年度/月份篩選影響，一律顯示
+    if(journalFilterYear !== 'all' && e.date.slice(0,4) !== journalFilterYear) return false;
+    if(journalFilterMonth !== 'all' && e.date.slice(5,7) !== journalFilterMonth) return false;
+    return true;
+  };
+  const entries = allEntries.filter(matchesFilter);
+  const pending = entries.filter(e => !e.completed);
+  const done = entries.filter(e => e.completed);
+  const showDone = journalDoneExpanded || !!q; // 有搜尋內容時強制展開已完成，避免搜到的結果被收合藏起來
+
+  const filterBar = `
+    <div style="display:flex; gap:10px; margin:0 0 16px; flex-wrap:wrap; align-items:flex-end;">
+      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px; display:block;">年度</label>
+        <select id="jnFilterYear">
+          <option value="all" ${journalFilterYear==='all'?'selected':''}>全部</option>
+          ${years.map(y=>`<option value="${y}" ${y===journalFilterYear?'selected':''}>${y}</option>`).join('')}
+        </select>
+      </div>
+      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px; display:block;">月份</label>
+        <select id="jnFilterMonth">
+          <option value="all" ${journalFilterMonth==='all'?'selected':''}>全部</option>
+          ${Array.from({length:12},(_,i)=>String(i+1).padStart(2,'0')).map(m=>`<option value="${m}" ${m===journalFilterMonth?'selected':''}>${parseInt(m,10)}月</option>`).join('')}
+        </select>
+      </div>
+      <div style="flex:1; min-width:160px;"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px; display:block;">搜尋</label>
+        <input type="text" id="jnSearchInput" value="${escapeHtml(journalSearchQuery)}" placeholder="搜尋案名、事項內容、備註">
+      </div>
+    </div>`;
+
+  let body = '';
+  if(allEntries.length === 0){
+    body = '<div class="empty">尚無工作日誌，點右上角「＋設定工作日誌」開始記錄</div>';
+  } else if(entries.length === 0){
+    body = q ? '<div class="card-hint">找不到符合的工作日誌</div>' : '<div class="card-hint">這個年度/月份沒有工作日誌</div>';
+  } else {
+    body = pending.length ? pending.map(journalEntryCardHtml).join('') : '<div class="card-hint">目前沒有進行中的工作日誌</div>';
+    if(done.length){
+      body += `
+      <div class="cv-section-head" style="margin-top:24px; padding:10px 12px; background:var(--grey-soft); border-radius:6px; border-top:none; cursor:pointer;" id="jnDoneToggle">
+        <span class="cv-section-title">已完成（${done.length}）</span>
+        <span style="color:var(--teal); font-size:12px; font-weight:600;">${showDone ? '收合 ▲' : '展開 ▼'}</span>
+      </div>
+      ${showDone ? done.map(journalEntryCardHtml).join('') : ''}`;
+    }
+  }
+
+  return `
+    <div class="card-top">
+      <div><div class="card-title">工作日誌</div></div>
+      <button class="btn" id="jnAddEntry">＋ 設定工作日誌</button>
+    </div>
+    ${allEntries.length ? filterBar : ''}
+    ${body}
+    ${journalModalOpen && journalDraft ? journalModalHtml() : ''}`;
+}
+
+function journalModalHtml(){
+  const d = journalDraft;
+  const rows = d.items.map((it,i) => `
+    <div class="modal-ext-row" data-jn-item-row="${it.id}">
+      <span style="width:20px; text-align:center; color:var(--ink-soft); font-size:14px; flex-shrink:0;">●</span>
+      <input type="text" class="jn-item-input" data-jn-item-id="${it.id}" value="${escapeHtml(it.text)}" style="flex:1;">
+      <button class="rowdel" data-jn-item-del="${it.id}" title="刪除此項">✕</button>
+    </div>`).join('');
+  return `
+    <div class="modal-overlay" id="journalModalOverlay">
+      <div class="modal-box">
+        <div class="modal-title">設定工作日誌</div>
+        <div class="modal-row">
+          <label>案名</label>
+          <input type="text" id="jn_caseName" list="journalCaseDatalist" value="${escapeHtml(d.caseName)}" placeholder="可自由輸入，或從既有案件挑選">
+        </div>
+        <datalist id="journalCaseDatalist">${(state.cases||[]).map(c=>`<option value="${escapeHtml(c.name)}">`).join('')}</datalist>
+        <div class="modal-row">
+          <label>時間</label>
+          <input type="date" id="jn_date" value="${escapeHtml(d.date||'')}">
+        </div>
+        <label style="margin-top:10px; display:block;">處理事項</label>
+        <div id="jnItemDraftList">${rows || '<div class="card-hint" style="margin:4px 0 8px;">尚無事項，請新增</div>'}</div>
+        <button class="btn ghost" id="jnAddItem" style="margin-top:6px;">＋ 新增</button>
+        <div class="modal-row" style="margin-top:14px;">
+          <label>備註</label>
+          <textarea id="jn_note" placeholder="其他補充說明">${escapeHtml(d.note||'')}</textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="jnCancel">取消</button>
+          <button class="btn" id="jnSave">儲存</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function bindJournalView(){
+  const byId = id => document.getElementById(id);
+  if(!byId('jnAddEntry')) return; // 目前不在此分頁，不需綁定
+  byId('jnDoneToggle') && byId('jnDoneToggle').addEventListener('click', ()=>{
+    journalDoneExpanded = !journalDoneExpanded;
+    render();
+  });
+  byId('jnFilterYear') && byId('jnFilterYear').addEventListener('change', e=>{
+    journalFilterYear = e.target.value;
+    render();
+  });
+  byId('jnFilterMonth') && byId('jnFilterMonth').addEventListener('change', e=>{
+    journalFilterMonth = e.target.value;
+    render();
+  });
+  const jnSearchInputEl = byId('jnSearchInput');
+  if(jnSearchInputEl){
+    const applyJnSearch = ()=>{
+      const el = document.getElementById('jnSearchInput');
+      if(!el) return;
+      journalSearchQuery = el.value;
+      const pos = el.selectionStart;
+      render();
+      const el2 = document.getElementById('jnSearchInput');
+      if(el2){ el2.focus(); el2.setSelectionRange(pos, pos); }
+    };
+    jnSearchInputEl.addEventListener('input', (e)=>{
+      if(e.isComposing) return; // 中文注音/拼音組字中，先不重繪，避免打斷輸入法
+      applyJnSearch();
+    });
+    jnSearchInputEl.addEventListener('compositionend', applyJnSearch);
+  }
+  byId('jnAddEntry').addEventListener('click', ()=>{
+    journalDraft = {id:uid(), caseName:'', date:new Date().toISOString().slice(0,10), items:[{id:uid(), text:''}], note:'', completed:false};
+    journalModalOpen = true;
+    render();
+  });
+  document.querySelectorAll('[data-jn-edit]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const entry = getJournalEntries().find(e=>e.id===btn.getAttribute('data-jn-edit'));
+      if(!entry) return;
+      journalDraft = {id:entry.id, caseName:entry.caseName, date:entry.date||'', items: entry.items.map(it=>({id:it.id, text:it.text})), note:entry.note||'', completed: !!entry.completed};
+      journalModalOpen = true;
+      render();
+    });
+  });
+  document.querySelectorAll('[data-jn-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.getAttribute('data-jn-del');
+      const entry = getJournalEntries().find(e=>e.id===id);
+      if(entry && confirm(`確定要刪除「${entry.caseName}」這筆工作日誌記錄嗎？`)){
+        state.journalEntries = getJournalEntries().filter(e=>e.id!==id);
+        scheduleSave(true);
+        render();
+      }
+    });
+  });
+  document.querySelectorAll('[data-jn-complete]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const entry = getJournalEntries().find(e=>e.id===btn.getAttribute('data-jn-complete'));
+      if(entry){ entry.completed = true; scheduleSave(true); render(); }
+    });
+  });
+  document.querySelectorAll('[data-jn-uncomplete]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const entry = getJournalEntries().find(e=>e.id===btn.getAttribute('data-jn-uncomplete'));
+      if(entry){ entry.completed = false; scheduleSave(true); render(); }
+    });
+  });
+  if(journalModalOpen && journalDraft){
+    bindJournalModal();
+  }
+}
+
+function bindJournalModal(){
+  const byId = id => document.getElementById(id);
+  byId('jn_caseName') && byId('jn_caseName').addEventListener('input', e=>{
+    journalDraft.caseName = e.target.value;
+  });
+  byId('jn_date') && byId('jn_date').addEventListener('change', e=>{
+    journalDraft.date = e.target.value;
+  });
+  byId('jn_note') && byId('jn_note').addEventListener('input', e=>{
+    journalDraft.note = e.target.value;
+  });
+  document.querySelectorAll('.jn-item-input').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      const item = journalDraft.items.find(x=>x.id===inp.dataset.jnItemId);
+      if(item) item.text = inp.value;
+    });
+  });
+  document.querySelectorAll('[data-jn-item-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      journalDraft.items = journalDraft.items.filter(x=>x.id!==btn.getAttribute('data-jn-item-del'));
+      render();
+    });
+  });
+  byId('jnAddItem') && byId('jnAddItem').addEventListener('click', ()=>{
+    journalDraft.items.push({id:uid(), text:''});
+    render();
+  });
+  byId('jnCancel') && byId('jnCancel').addEventListener('click', ()=>{
+    journalModalOpen = false; journalDraft = null; render();
+  });
+  byId('jnSave') && byId('jnSave').addEventListener('click', ()=>{
+    const caseName = (journalDraft.caseName||'').trim();
+    if(!caseName){ alert('請輸入案名'); return; }
+    const items = journalDraft.items.filter(it => (it.text||'').trim());
+    const entries = getJournalEntries();
+    const idx = entries.findIndex(e=>e.id===journalDraft.id);
+    const rec = {id:journalDraft.id, caseName, date:journalDraft.date||'', items, note:(journalDraft.note||'').trim(), completed:!!journalDraft.completed};
+    if(idx >= 0) entries[idx] = rec; else entries.push(rec);
+    journalModalOpen = false; journalDraft = null;
+    scheduleSave(true);
     render();
   });
 }
@@ -895,8 +1663,8 @@ function bindChangeCredModal(){
       await db.ref('users/' + currentDocId).remove();
       if(newCode !== oldCode){
         await unregisterCode(oldCode);
-        await registerCode(newCode);
       }
+      await registerCode(newCode, newDocId);
       currentDocId = newDocId;
       currentUserCode = newCode;
       localStorage.setItem(LOCAL_KEY, JSON.stringify({docId:newDocId, code:newCode}));
@@ -1625,16 +2393,20 @@ function progressModalHtml(c){
 }
 /* ============ Tabs ============ */
 const BASE_TABS = [
-  {key:"cases", idx:"01", label:"結案總表"},
-  {key:"progressOverview", idx:"02", label:"進度總覽(執行中/暫停)"},
-  {key:"caseview", idx:"03", label:"各案總覽"},
+  {key:"cases", label:"結案總表"},
+  {key:"progressOverview", label:"進度總覽(執行中/暫停)"},
+  {key:"caseview", label:"各案總覽"},
 ];
 function getTabs(){
   const tabs = BASE_TABS.slice();
-  if(getSettings().bonusEnabled){
-    tabs.push({key:"bonusKpi", idx:"04", label:"結案獎金"});
+  if(getSettings().journalEnabled){
+    tabs.push({key:"journal", label:"工作日誌"});
   }
-  return tabs;
+  tabs.push({key:"leave", label:"休假紀錄"});
+  if(getSettings().bonusEnabled){
+    tabs.push({key:"bonusKpi", label:"結案獎金"});
+  }
+  return tabs.map((t,i)=> Object.assign({}, t, {idx: String(i+1).padStart(2,'0')}));
 }
 let caseViewSelectedId = null;
 let caseViewStatusFilter = "進行中";
@@ -1687,6 +2459,8 @@ function render(){
   if(activeTab==="cases") area.innerHTML = casesView();
   else if(activeTab==="progressOverview") area.innerHTML = progressOverviewView();
   else if(activeTab==="caseview") area.innerHTML = caseView();
+  else if(activeTab==="journal") area.innerHTML = journalView();
+  else if(activeTab==="leave") area.innerHTML = leaveView();
   else if(activeTab==="bonusKpi") area.innerHTML = bonusKpiView();
   bindEvents();
 }
@@ -1740,7 +2514,7 @@ function getAvailableClosedYears(){
 }
 function caseGroupTableClosed(list, emptyMsg){
   const rows = list.map((c,i)=>caseRowHtmlClosed(c,i)).join('');
-  const typeOptions = ["總覽", ...CASE_TYPES].map(t=>`<option value="${t}" ${t===closedTypeFilter?'selected':''}>${t}</option>`).join('');
+  const typeOptions = ["總覽", ...getCaseTypeOptions()].map(t=>`<option value="${t}" ${t===closedTypeFilter?'selected':''}>${t}</option>`).join('');
   const categoryOptions = ["總覽", ...getCategoryOptions()].map(t=>`<option value="${t}" ${t===closedCategoryFilter?'selected':''}>${t}</option>`).join('');
   const yearOptions = ["總覽", ...getAvailableClosedYears()].map(y=>`<option value="${y}" ${y===closedYearFilter?'selected':''}>${y}</option>`).join('');
   return `
@@ -1780,13 +2554,9 @@ function casesView(){
     closed = closed.filter(c => c.actualClose && c.actualClose.slice(0,4) === closedYearFilter);
   }
 
-  const isYenchin = currentUserCode === "彥瑾";
   return `
     <div class="card-top">
       <div><div class="card-title">結案總表</div></div>
-      <div style="display:flex; gap:8px; align-items:center;">
-        ${isYenchin ? `<span id="importStatus" class="card-hint" style="margin:0;"></span><button class="btn ghost" id="importYenchin">⇪ 匯入彥瑾歷史案件（58筆）</button>` : ''}
-      </div>
     </div>
 
     <div class="cv-section" style="margin-top:0; padding-top:0; border-top:none;">
@@ -1823,7 +2593,7 @@ function progressOverviewView(){
   if(ongoing.length === 0 && paused.length === 0){
     return `
       <div class="card-top">
-        <div><div class="card-title">進度總覽(執行中/暫停)</div><div class="card-hint">一次看完所有執行中／暫停案件的工作進度，不用逐一點進各案總覽</div></div>
+        <div><div class="card-title">進度總覽(執行中/暫停)</div></div>
       </div>
       <div class="empty">目前沒有執行中或暫停的案件</div>`;
   }
@@ -1948,7 +2718,6 @@ function bonusKpiView(){
           <div style="width:${Math.min(completionRate,100)}%; height:100%; background:${completionRate>=100?'var(--moss)':'var(--amber)'}; border-radius:999px; transition:width .3s;"></div>
         </div>
       </div>` : ''}
-      <div class="card-hint" style="margin-top:8px;">月薪依年度個別設定，因為每年薪資可能不同</div>
     </div>`}
 
     <div class="cv-section" ${isOverview ? 'style="margin-top:0; padding-top:0; border-top:none;"' : ''}>
@@ -2551,6 +3320,8 @@ async function exportHtmlToPdf(innerHtml, filename, btn, orientation){
 }
 
 function bindEvents(){
+  bindLeaveView();
+  bindJournalView();
   const bonusYearSel = document.getElementById('bonusYearSelect');
   if(bonusYearSel){
     bonusYearSel.addEventListener('change', ()=>{
@@ -2588,21 +3359,7 @@ function bindEvents(){
       render();
     });
   }
-  document.getElementById('importYenchin') && document.getElementById('importYenchin').addEventListener('click', ()=>{
-    const existingNames = new Set(state.cases.map(c => c.name));
-    let added = 0, skipped = 0;
-    HISTORICAL_YENCHIN_CASES.forEach(r=>{
-      if(existingNames.has(r.name)){ skipped++; return; }
-      state.cases.push(historicalCaseToRecord(r));
-      existingNames.add(r.name);
-      added++;
-    });
-    scheduleSave(); render();
-    const s = document.getElementById('importStatus');
-    if(s) s.textContent = `已匯入 ${added} 筆${skipped ? `，略過 ${skipped} 筆已存在` : ''}`;
-  });
-
-  document.querySelectorAll('.rowdel').forEach(btn=>{
+  document.querySelectorAll('.rowdel[data-del]').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const kind = btn.dataset.del, id = btn.dataset.id;
       state[kind] = state[kind].filter(x=>x.id!==id);
@@ -2889,7 +3646,15 @@ function basicModalHtml(){
         <div class="modal-row"><label>案名</label><input type="text" id="bm_name" value="${escapeHtml(d.name)}"></div>
         <div class="modal-row"><label>委託單位／義務人</label><input type="text" id="bm_client" value="${escapeHtml(d.client)}"></div>
         <div class="modal-row"><label>代表人（公司申請才填）</label><input type="text" id="bm_rep" value="${escapeHtml(d.rep||'')}"></div>
-        <div class="modal-row"><label>案件類型</label><select id="bm_caseType"><option value="">未分類</option>${selectOptions(CASE_TYPES, d.caseType)}</select></div>
+        <div class="modal-row">
+          <label>案件類型</label>
+          <select id="bm_caseType"><option value="">未分類</option>${selectOptions(getCaseTypeOptions(), d.caseType)}</select>
+          <div style="display:flex; gap:6px; margin-top:6px;">
+            <input type="text" id="newCaseTypeInput" placeholder="新增類型名稱" style="font-size:11px;">
+            <button class="btn ghost" id="addCaseTypeBtn" style="padding:5px 10px; font-size:11px; white-space:nowrap;">＋新增</button>
+            <button class="btn ghost" id="deleteCaseTypeBtn" style="padding:5px 10px; font-size:11px; white-space:nowrap;">✕刪除此分類</button>
+          </div>
+        </div>
         <div class="modal-row">
           <label>分類</label>
           <select id="bm_category"><option value="">未分類</option>${selectOptions(getCategoryOptions(), d.category)}</select>
@@ -2922,6 +3687,24 @@ function bindBasicModal(){
   byId('bm_client') && byId('bm_client').addEventListener('input', e=>{ basicDraft.client = e.target.value; });
   byId('bm_rep') && byId('bm_rep').addEventListener('input', e=>{ basicDraft.rep = e.target.value; });
   byId('bm_caseType') && byId('bm_caseType').addEventListener('change', e=>{ basicDraft.caseType = e.target.value; });
+  byId('addCaseTypeBtn') && byId('addCaseTypeBtn').addEventListener('click', ()=>{
+    const inp = byId('newCaseTypeInput');
+    const val = (inp.value||'').trim();
+    if(!val) return;
+    addCaseTypeOption(val);
+    basicDraft.caseType = val;
+    scheduleSave();
+    render();
+  });
+  byId('deleteCaseTypeBtn') && byId('deleteCaseTypeBtn').addEventListener('click', ()=>{
+    const sel = byId('bm_caseType');
+    const val = sel ? sel.value : '';
+    if(!val) return;
+    removeCaseTypeOption(val);
+    if(basicDraft.caseType === val) basicDraft.caseType = '';
+    scheduleSave();
+    render();
+  });
   byId('bm_category') && byId('bm_category').addEventListener('change', e=>{ basicDraft.category = e.target.value; });
   byId('bm_status') && byId('bm_status').addEventListener('change', e=>{
     basicDraft.status = e.target.value;
@@ -3237,6 +4020,10 @@ document.addEventListener('click', (e)=>{
 /* ============ 啟動 ============ */
 (async function init(){
   document.getElementById('cardArea').innerHTML = `<div class="empty">載入中…</div>`;
+  if(location.hash === '#admin'){
+    renderAdminLogin();
+    return;
+  }
   await tryAutoLogin();
 })();
 </script>
