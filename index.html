@@ -368,6 +368,16 @@ td.readonly{background:transparent !important;}
   .rwd-formrow > div{width:100% !important; max-width:none !important; min-width:0 !important;}
   .rwd-formrow input, .rwd-formrow select{width:100% !important; box-sizing:border-box;}
   .rwd-formrow .btn{width:100%;}
+
+  /* 聯絡窗口地址等資訊列，避免「地址」等詞被從中間字元斷開換行 */
+  .contact-sub-line{word-break:keep-all; overflow-wrap:break-word;}
+
+  /* 審查次數展延紀錄：兩個日期框維持並排一行，改用平分寬度取代原本卡死的140px，
+     並縮小欄位間距/字距，避免16px字級的日期文字在窄框裡被迫換行 */
+  .ext-date-row{gap:6px;}
+  .ext-date-row > div{flex:1 1 0; min-width:0;}
+  .ext-date-row input[type=date]{width:100% !important; box-sizing:border-box; padding:6px 4px; letter-spacing:-0.4px;}
+  .ext-date-row .rowdel{flex-shrink:0;}
   .rwd-filterbar{flex-direction:column; align-items:stretch !important; gap:10px;}
   .rwd-filterbar > div{width:100% !important; min-width:0 !important;}
   .rwd-filterbar input, .rwd-filterbar select{width:100% !important; box-sizing:border-box;}
@@ -2242,7 +2252,7 @@ function contactCardHtml(x){
         m.email ? 'Email：'+escapeHtml(m.email) : '',
         m.address ? '地址：'+escapeHtml(m.address) : ''
       ].filter(Boolean).join('　');
-      return `<div style="margin-top:2px;">・${parts || '（未填姓名）'}${sub ? `<div style="padding-left:12px; color:var(--grey); font-size:10.5px;">${sub}</div>` : ''}</div>`;
+      return `<div style="margin-top:2px;">・${parts || '（未填姓名）'}${sub ? `<div class="contact-sub-line" style="padding-left:12px; color:var(--grey); font-size:10.5px;">${sub}</div>` : ''}</div>`;
     }).join('');
     lines.push(`<div style="color:var(--ink-soft); font-size:11.5px; margin-top:4px;">審查委員：${memberLines}</div>`);
   }
@@ -2348,7 +2358,7 @@ function progressModalHtml(c){
   const n = progressModalReviewTab; // "1" | "2" | "3" | "view" | "final"
   const isReview = (n==="1"||n==="2"||n==="3");
   const extRowsForN = isReview ? (p.extensions||[]).filter(x => String(x.reviewNo) === n).map(x=>`
-    <div class="modal-ext-row" data-ext-id="${x.id}" style="justify-content:space-between;">
+    <div class="modal-ext-row ext-date-row" data-ext-id="${x.id}" style="justify-content:space-between;">
       <div>
         <label style="font-size:10.5px; color:var(--ink-soft); margin:0;">展延公文日期</label>
         <input type="date" class="pm-ext-date" data-ext-id="${x.id}" value="${x.date||''}" style="width:140px;">
