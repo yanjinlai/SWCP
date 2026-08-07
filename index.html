@@ -95,6 +95,7 @@ h1{
   display:flex; align-items:center; gap:8px;
 }
 .tab .idx{color:var(--teal); font-weight:600;}
+.tab br.tab-br-mobile{display:none;}
 .tab:hover{opacity:1;}
 .tab.active{
   background:var(--card);
@@ -316,6 +317,9 @@ td.readonly{background:transparent !important;}
   .tabs{gap:6px; margin-top:16px;}
   .tab{padding:8px 10px; font-size:11px; gap:5px;}
   .tab .idx{display:none;}
+  .tab br.tab-br-mobile{display:block;}
+
+  #userInfo a{white-space:nowrap;}
 
   .card{padding:14px; border-radius:0 6px 6px 6px;}
   .card-top{gap:8px; margin-bottom:12px;}
@@ -386,7 +390,7 @@ body.pdf-exporting button{display:none !important;}
   <div class="header">
     <div class="eyebrow">水土保持計畫・案件管理</div>
     <h1>工作進度表</h1>
-    <div class="subtitle">結案總表・各案總覽（基本資料・工作進度・聯絡窗口） — 資料同步儲存於雲端</div>
+    <div class="subtitle">結案總表・各案總覽（基本資料・工作進度・聯絡窗口）</div>
     <div class="savebar" id="savebar"><span class="dot"></span><span id="saveText">載入中…</span><span id="userInfo" style="margin-left:12px;"></span><button class="btn ghost" id="undoBtn" style="margin-left:12px; padding:3px 10px; font-size:11px; display:none;">↩ 返回上一步</button></div>
   </div>
 
@@ -1838,7 +1842,7 @@ function toROC(dateStr){
   if(parts.length !== 3) return dateStr;
   const y = parseInt(parts[0], 10) - 1911;
   if(isNaN(y)) return dateStr;
-  return `民國${y}年${parts[1]}月${parts[2]}日`;
+  return `${y}年${parts[1]}月${parts[2]}日`;
 }
 function badgeClassCaseStatus(s){
   return s==="已結案" ? "badge-moss" : s==="暫停" ? "badge-grey" : "badge-amber";
@@ -2409,7 +2413,7 @@ function progressModalHtml(c){
 /* ============ Tabs ============ */
 const BASE_TABS = [
   {key:"cases", label:"結案總表"},
-  {key:"progressOverview", label:"進度總覽(執行中/暫停)"},
+  {key:"progressOverview", label:"進度總覽<br class=\"tab-br-mobile\">(執行中/暫停)"},
   {key:"caseview", label:"各案總覽"},
 ];
 function getTabs(){
