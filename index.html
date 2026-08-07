@@ -362,6 +362,9 @@ td.readonly{background:transparent !important;}
   .rwd-filterbar{flex-direction:column; align-items:stretch !important; gap:10px;}
   .rwd-filterbar > div{width:100% !important; min-width:0 !important;}
   .rwd-filterbar input, .rwd-filterbar select{width:100% !important; box-sizing:border-box;}
+
+  .rwd-subtabs{gap:6px !important;}
+  .rwd-subtabs .tab{flex:1 1 0; min-width:0; justify-content:center; padding:9px 4px !important; font-size:12px !important;}
 }
 
 @media (max-width:400px){
@@ -1076,7 +1079,7 @@ function leaveView(){
   const tabDefs = [['annual','特休'],['other','假別'],['overtime','加班時數']];
   const subTabs = tabDefs.map(([v,label]) => `
     <button type="button" class="tab lv-tab ${v===leaveViewTab?'active':''}" data-lv-tab="${v}" style="border-radius:6px; transform:none; padding:7px 14px;">
-      <span class="idx">${label}</span>
+      <span>${label}</span>
     </button>`).join('');
   let body;
   if(leaveViewTab === 'annual') body = annualLeaveTabHtml(lv);
@@ -1091,7 +1094,7 @@ function leaveView(){
       <label>到職日期</label>
       <input type="date" id="lv_onboardDate" value="${escapeHtml(lv.onboardDate||'')}">
     </div>
-    <div style="display:flex; gap:8px; margin:0 0 16px; flex-wrap:wrap;">${subTabs}</div>
+    <div class="rwd-subtabs" style="display:flex; gap:8px; margin:0 0 16px; flex-wrap:wrap;">${subTabs}</div>
     <div id="leaveTabBody">${body}</div>`;
 }
 
@@ -2346,7 +2349,7 @@ function progressModalHtml(c){
   const tabDefs = [["1","第1次"],["2","第2次"],["3","第3次"],["view","檢視本"],["final","定稿本"]];
   const tabs = tabDefs.map(([v,label])=>`
     <button type="button" class="tab pm-review-tab ${v===n?'active':''}" data-review-tab="${v}" style="border-radius:6px; transform:none; padding:7px 12px;">
-      <span class="idx">${label}</span>
+      <span>${label}</span>
     </button>`).join('');
 
   let tabContent = '';
@@ -2383,7 +2386,7 @@ function progressModalHtml(c){
 
         <div class="modal-row">
           <label>階段</label>
-          <div style="display:flex; gap:6px; flex-wrap:wrap;">${tabs}</div>
+          <div class="rwd-subtabs" style="display:flex; gap:6px; flex-wrap:wrap;">${tabs}</div>
         </div>
 
         <div class="modal-row" style="background:#F4F6F2; border-radius:8px; padding:12px;">
