@@ -305,8 +305,6 @@ td.readonly{background:transparent !important;}
     zoom:1;
     padding:16px 12px 48px;
     background-size:20px 20px;
-    word-break:keep-all;
-    overflow-wrap:break-word;
   }
   .wrap{max-width:100%;}
 
@@ -350,8 +348,7 @@ td.readonly{background:transparent !important;}
   .stepper{gap:0; padding:6px 2px 2px;}
   .step{min-width:72px;}
   .step-label{font-size:10px;}
-  .step-date, .step-deadline{font-size:9.5px; word-break:keep-all; overflow-wrap:break-word;}
-  .ext-list-cell{word-break:keep-all; overflow-wrap:break-word;}
+  .step-date, .step-deadline{font-size:9.5px;}
 
   .modal-overlay{padding:12px;}
   .modal-box{padding:16px; max-height:92vh;}
@@ -2223,7 +2220,7 @@ function progressTableHtml(p){
       <td class="readonly" style="white-space:nowrap;">${deadlineCell}</td>
       <td class="readonly" style="white-space:nowrap;">${reviseCell}</td>
       <td class="readonly" style="white-space:nowrap;">${extDeadlineCell}</td>
-      <td class="readonly ext-list-cell">${extText}</td>
+      <td class="readonly">${extText}</td>
     </tr>`;
   }).join('');
   return `<div class="tbl-scroll"><table>
