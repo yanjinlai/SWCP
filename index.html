@@ -2200,7 +2200,7 @@ function progressTableHtml(p){
   }
   const body = rows.map(([label, reviewNo, date, deadline, revise, exts])=>{
     const extText = exts.length
-      ? exts.map(x => `展延${x.date?'：'+escapeHtml(toROC(x.date)):''}${x.newDeadline?' →新期限 '+escapeHtml(toROC(x.newDeadline)):''}`).join('　｜　')
+      ? exts.map(x => `展延${x.date?'：'+escapeHtml(toROC(x.date)):''}${x.newDeadline?' →新期限 '+escapeHtml(toROC(x.newDeadline)):''}`).join('<br>')
       : '－';
     // 取展延紀錄中最新（日期最大）的新修正期限，作為目前實際生效的展延期限
     let latestNewDeadline = '';
