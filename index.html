@@ -2217,7 +2217,7 @@ function progressTableHtml(p){
     const deadlineCell = deadline ? (deadlineIsWatched ? `<span style="color:var(--deadline-red); font-weight:700;">${escapeHtml(toROC(deadline))}</span>` : escapeHtml(toROC(deadline))) : '－';
     const reviseCell = revise ? `<span style="color:var(--moss); font-weight:700;">${escapeHtml(toROC(revise))}</span>` : '－';
     return `<tr>
-      <td class="readonly">${label}</td>
+      <td class="readonly" style="white-space:nowrap;">${label}</td>
       <td class="readonly" style="white-space:nowrap;">${dateCell}</td>
       <td class="readonly" style="white-space:nowrap;">${deadlineCell}</td>
       <td class="readonly" style="white-space:nowrap;">${reviseCell}</td>
