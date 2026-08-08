@@ -318,6 +318,7 @@ td.readonly{background:transparent !important;}
   #tabs .tab{padding:6px 3px; font-size:10px; gap:0; flex:1 1 0; min-width:0; justify-content:center; text-align:center;}
   .tab .idx{display:none;}
   .tab-l2{display:block;}
+  .tab-l3{display:block;}
   #tabs .tab[data-tab="progressOverview"]{font-size:9px; letter-spacing:-0.3px;}
 
   #userInfo a{white-space:nowrap;}
@@ -346,9 +347,10 @@ td.readonly{background:transparent !important;}
   .cv-detail-tabs .btn{font-size:11px; padding:6px 10px;}
 
   .stepper{gap:0; padding:6px 2px 2px;}
-  .step{min-width:72px;}
-  .step-label{font-size:10px;}
-  .step-date, .step-deadline{font-size:9.5px;}
+  .step{min-width:auto;}
+  .step-label{font-size:10px; white-space:nowrap;}
+  .step-date, .step-deadline{font-size:9.5px; white-space:nowrap;}
+  .step-ext{white-space:nowrap;}
 
   .modal-overlay{padding:12px;}
   .modal-box{padding:16px; max-height:92vh;}
@@ -2198,7 +2200,7 @@ function progressTableHtml(p){
   }
   const body = rows.map(([label, reviewNo, date, deadline, revise, exts])=>{
     const extText = exts.length
-      ? exts.map(x => `展延${x.date?'：'+escapeHtml(toROC(x.date)):''}${x.newDeadline?' →新期限 '+escapeHtml(toROC(x.newDeadline)):''}`).join('<br>')
+      ? exts.map(x => `展延${x.date?'：'+escapeHtml(toROC(x.date)):''}${x.newDeadline?' →新期限 '+escapeHtml(toROC(x.newDeadline)):''}`).join('　｜　')
       : '－';
     // 取展延紀錄中最新（日期最大）的新修正期限，作為目前實際生效的展延期限
     let latestNewDeadline = '';
@@ -2220,7 +2222,7 @@ function progressTableHtml(p){
       <td class="readonly" style="white-space:nowrap;">${deadlineCell}</td>
       <td class="readonly" style="white-space:nowrap;">${reviseCell}</td>
       <td class="readonly" style="white-space:nowrap;">${extDeadlineCell}</td>
-      <td class="readonly">${extText}</td>
+      <td class="readonly" style="white-space:nowrap;">${extText}</td>
     </tr>`;
   }).join('');
   return `<div class="tbl-scroll"><table>
@@ -2431,7 +2433,7 @@ function progressModalHtml(c){
 /* ============ Tabs ============ */
 const BASE_TABS = [
   {key:"cases", label:"<span class=\"tab-txt\">結案<span class=\"tab-l2\">總表</span></span>"},
-  {key:"progressOverview", label:"<span class=\"tab-txt\">進度總覽<span class=\"tab-l2\">(執行中/暫停)</span></span>"},
+  {key:"progressOverview", label:"<span class=\"tab-txt\">進度總覽<span class=\"tab-l2\">(執行中/<span class=\"tab-l3\">暫停)</span></span></span>"},
   {key:"caseview", label:"<span class=\"tab-txt\">各案<span class=\"tab-l2\">總覽</span></span>"},
 ];
 function getTabs(){
