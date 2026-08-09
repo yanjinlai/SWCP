@@ -299,8 +299,8 @@ td.readonly{background:transparent !important;}
 .modal-ext-row input[type=checkbox]{width:auto;}
 .modal-actions{display:flex; justify-content:flex-end; gap:8px; margin-top:18px; padding-top:14px; border-top:1px solid var(--card-line);}
 
-/* ---------- 平板版 RWD（iPad等，641px~1024px） ---------- */
-@media (min-width:641px) and (max-width:1024px){
+/* ---------- 平板版 RWD（iPad等，641px~1280px，涵蓋直式820px與橫式1180px） ---------- */
+@media (min-width:641px) and (max-width:1280px){
   /* 休假紀錄(特休/假別/加班時數)新增列的日期欄位：iOS Safari對空白date欄位預設會給很寬的寬度，
      手機版已用.rwd-formrow強制100%寬度解決，但平板寬度不觸發手機版規則，日期欄位維持瀏覽器預設寬度，
      導致跟同一列其他欄位（單位/數量/加班時數/備註）寬度落差過大、視覺對不齊，這裡統一給固定寬度 */
