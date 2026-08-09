@@ -305,6 +305,11 @@ td.readonly{background:transparent !important;}
      手機版已用.rwd-formrow強制100%寬度解決，但平板寬度不觸發手機版規則，日期欄位維持瀏覽器預設寬度，
      導致跟同一列其他欄位（單位/數量/加班時數/備註）寬度落差過大、視覺對不齊，這裡統一給固定寬度 */
   .lv-date-input{width:160px !important;}
+  /* 休假紀錄新增列：日期/單位/數量/備註等欄位的label跟input，平板寬度下因flex自動收縮量不一致，
+     導致有的欄位label換行到input上方、有的沒換行卡在同一行，看起來每個欄位對不齊；
+     強制label一律獨立成塊(在自己的一行)，讓所有欄位統一都是「名稱在上、輸入框在下」 */
+  .lv-field{display:flex; flex-direction:column; align-items:flex-start;}
+  .lv-field label{display:block;}
 }
 
 /* ---------- 手機版 RWD ---------- */
@@ -1156,15 +1161,15 @@ function annualLeaveTabHtml(lv){
       <div>剩餘：<b style="color:var(--teal);">${remain}</b> 天</div>
     </div>
     <div class="rwd-formrow" style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; border-bottom:1px dashed var(--card-line); padding-bottom:16px;">
-      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">日期</label><input type="date" id="lv_annualDate" class="lv-date-input"></div>
-      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">單位</label>
+      <div class="lv-field"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">日期</label><input type="date" id="lv_annualDate" class="lv-date-input"></div>
+      <div class="lv-field"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">單位</label>
         <select id="lv_annualUnit"><option value="day">天</option><option value="hour">小時</option></select>
       </div>
-      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">數量</label>
+      <div class="lv-field"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">數量</label>
         <select id="lv_annualDayAmount"><option value="0.5">0.5</option><option value="1" selected>1</option></select>
         <input type="number" id="lv_annualHourAmount" step="0.5" min="0.5" style="display:none; width:80px;" placeholder="小時">
       </div>
-      <div style="flex:1; min-width:120px;"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">備註</label><input type="text" id="lv_annualNote"></div>
+      <div class="lv-field" style="flex:1; min-width:120px;"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">備註</label><input type="text" id="lv_annualNote"></div>
       <button class="btn" id="lv_annualAdd">＋ 新增</button>
     </div>
     <div class="tbl-scroll"><table>
@@ -1188,18 +1193,18 @@ function otherLeaveTabHtml(lv){
   return `
     <div class="card-hint" style="margin-bottom:10px;">「補休」時數會從「加班時數」分頁累積的餘額扣抵，目前補休餘額：<b style="color:var(--teal);">${balance} 小時</b></div>
     <div class="rwd-formrow" style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; border-bottom:1px dashed var(--card-line); padding-bottom:16px;">
-      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">假別</label>
+      <div class="lv-field"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">假別</label>
         <select id="lv_otherType">${OTHER_LEAVE_TYPES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
       </div>
-      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">日期</label><input type="date" id="lv_otherDate" class="lv-date-input"></div>
-      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">單位</label>
+      <div class="lv-field"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">日期</label><input type="date" id="lv_otherDate" class="lv-date-input"></div>
+      <div class="lv-field"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">單位</label>
         <select id="lv_otherUnit"><option value="day">天</option><option value="hour">小時</option></select>
       </div>
-      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">數量</label>
+      <div class="lv-field"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">數量</label>
         <select id="lv_otherDayAmount"><option value="0.5">0.5</option><option value="1" selected>1</option></select>
         <input type="number" id="lv_otherHourAmount" step="0.5" min="0.5" style="display:none; width:80px;" placeholder="小時">
       </div>
-      <div style="flex:1; min-width:120px;"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">備註</label><input type="text" id="lv_otherNote"></div>
+      <div class="lv-field" style="flex:1; min-width:120px;"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">備註</label><input type="text" id="lv_otherNote"></div>
       <button class="btn" id="lv_otherAdd">＋ 新增</button>
     </div>
     <div class="tbl-scroll"><table>
@@ -1237,9 +1242,9 @@ function overtimeTabHtml(lv){
       <div>年底餘額：<b style="color:var(--teal);">${yearEnd}</b> 小時</div>
     </div>
     <div class="rwd-formrow" style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; border-bottom:1px dashed var(--card-line); padding-bottom:16px;">
-      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">日期</label><input type="date" id="lv_overtimeDate" class="lv-date-input"></div>
-      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">加班時數</label><input type="number" id="lv_overtimeHours" step="0.5" min="0.5" style="width:90px;"></div>
-      <div style="flex:1; min-width:120px;"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">備註</label><input type="text" id="lv_overtimeNote"></div>
+      <div class="lv-field"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">日期</label><input type="date" id="lv_overtimeDate" class="lv-date-input"></div>
+      <div class="lv-field"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">加班時數</label><input type="number" id="lv_overtimeHours" step="0.5" min="0.5" style="width:90px;"></div>
+      <div class="lv-field" style="flex:1; min-width:120px;"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">備註</label><input type="text" id="lv_overtimeNote"></div>
       <button class="btn" id="lv_overtimeAdd">＋ 新增</button>
     </div>
     <div class="tbl-scroll"><table>
