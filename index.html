@@ -299,6 +299,14 @@ td.readonly{background:transparent !important;}
 .modal-ext-row input[type=checkbox]{width:auto;}
 .modal-actions{display:flex; justify-content:flex-end; gap:8px; margin-top:18px; padding-top:14px; border-top:1px solid var(--card-line);}
 
+/* ---------- 平板版 RWD（iPad等，641px~1024px） ---------- */
+@media (min-width:641px) and (max-width:1024px){
+  /* 休假紀錄(特休/假別/加班時數)新增列的日期欄位：iOS Safari對空白date欄位預設會給很寬的寬度，
+     手機版已用.rwd-formrow強制100%寬度解決，但平板寬度不觸發手機版規則，日期欄位維持瀏覽器預設寬度，
+     導致跟同一列其他欄位（單位/數量/加班時數/備註）寬度落差過大、視覺對不齊，這裡統一給固定寬度 */
+  .lv-date-input{width:160px;}
+}
+
 /* ---------- 手機版 RWD ---------- */
 @media (max-width:640px){
   body{
@@ -1148,7 +1156,7 @@ function annualLeaveTabHtml(lv){
       <div>剩餘：<b style="color:var(--teal);">${remain}</b> 天</div>
     </div>
     <div class="rwd-formrow" style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; border-bottom:1px dashed var(--card-line); padding-bottom:16px;">
-      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">日期</label><input type="date" id="lv_annualDate"></div>
+      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">日期</label><input type="date" id="lv_annualDate" class="lv-date-input"></div>
       <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">單位</label>
         <select id="lv_annualUnit"><option value="day">天</option><option value="hour">小時</option></select>
       </div>
@@ -1183,7 +1191,7 @@ function otherLeaveTabHtml(lv){
       <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">假別</label>
         <select id="lv_otherType">${OTHER_LEAVE_TYPES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
       </div>
-      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">日期</label><input type="date" id="lv_otherDate"></div>
+      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">日期</label><input type="date" id="lv_otherDate" class="lv-date-input"></div>
       <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">單位</label>
         <select id="lv_otherUnit"><option value="day">天</option><option value="hour">小時</option></select>
       </div>
@@ -1229,7 +1237,7 @@ function overtimeTabHtml(lv){
       <div>年底餘額：<b style="color:var(--teal);">${yearEnd}</b> 小時</div>
     </div>
     <div class="rwd-formrow" style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; border-bottom:1px dashed var(--card-line); padding-bottom:16px;">
-      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">日期</label><input type="date" id="lv_overtimeDate"></div>
+      <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">日期</label><input type="date" id="lv_overtimeDate" class="lv-date-input"></div>
       <div><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">加班時數</label><input type="number" id="lv_overtimeHours" step="0.5" min="0.5" style="width:90px;"></div>
       <div style="flex:1; min-width:120px;"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">備註</label><input type="text" id="lv_overtimeNote"></div>
       <button class="btn" id="lv_overtimeAdd">＋ 新增</button>
