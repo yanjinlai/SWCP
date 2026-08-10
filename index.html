@@ -296,8 +296,10 @@ td.readonly{background:transparent !important;}
 
 /* ---------- modal ---------- */
 .modal-overlay{position:fixed; inset:0; background:rgba(30,58,76,0.5); display:flex; align-items:center; justify-content:center; z-index:1000; padding:20px;}
-.modal-box{background:var(--card); border-radius:10px; padding:22px; width:100%; max-width:480px; max-height:88vh; overflow-y:auto; box-shadow:0 12px 40px rgba(0,0,0,0.28);}
-.modal-title{font-family:'Noto Serif TC', serif; font-weight:700; font-size:16px; color:var(--ink); margin-bottom:14px;}
+.modal-box{position:relative; background:var(--card); border-radius:10px; padding:22px; width:100%; max-width:480px; max-height:88vh; overflow-y:auto; box-shadow:0 12px 40px rgba(0,0,0,0.28);}
+.modal-x-close{position:absolute; top:10px; left:10px; width:28px; height:28px; border:none; background:transparent; color:var(--ink-soft); font-size:16px; line-height:1; cursor:pointer; border-radius:50%; display:flex; align-items:center; justify-content:center;}
+.modal-x-close:hover{background:var(--grey-soft); color:var(--ink);}
+.modal-title{font-family:'Noto Serif TC', serif; font-weight:700; font-size:16px; color:var(--ink); margin-bottom:14px; padding-left:30px;}
 .modal-row{margin-bottom:12px;}
 .modal-row label{display:block; font-size:11.5px; color:var(--ink-soft); margin-bottom:4px; font-family:'Noto Serif TC', serif;}
 .modal-ext-row{display:flex; align-items:center; gap:8px; margin-top:6px; font-size:12px; color:var(--ink-soft);}
@@ -1072,6 +1074,7 @@ function settingsModalHtml(){
   return `
     <div class="modal-overlay" id="settingsOverlay">
       <div class="modal-box">
+        <button type="button" class="modal-x-close" id="stCloseX" title="關閉" aria-label="關閉">✕</button>
         <div class="modal-title">個人設定</div>
         <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--ink); margin-bottom:12px;">
           <input type="checkbox" id="stBonusEnabled" style="width:auto;" ${s.bonusEnabled?'checked':''}> 啟用「結案獎金」功能
@@ -1096,6 +1099,7 @@ function closeSettingsModal(){
   document.getElementById('credModalArea').innerHTML = '';
 }
 function bindSettingsModal(){
+  document.getElementById('stCloseX') && document.getElementById('stCloseX').addEventListener('click', closeSettingsModal);
   document.getElementById('stCancel') && document.getElementById('stCancel').addEventListener('click', closeSettingsModal);
   document.getElementById('settingsOverlay') && document.getElementById('settingsOverlay').addEventListener('click', (e)=>{
     if(e.target.id === 'settingsOverlay') closeSettingsModal();
@@ -1184,8 +1188,11 @@ function annualLeaveTabHtml(lv){
 }
 
 function otherLeaveTabHtml(lv){
+  const curYear = new Date().getFullYear();
+  const years = []; for(let y = curYear-2; y <= curYear+1; y++) years.push(y);
   const typeLabel = t => (OTHER_LEAVE_TYPES.find(x=>x[0]===t)||['','?'])[1];
-  const rows = lv.other.slice().sort((a,b) => (a.date||'').localeCompare(b.date||''))
+  const rows = lv.other.filter(r => (r.date||'').startsWith(String(leaveViewYear)))
+    .slice().sort((a,b) => (a.date||'').localeCompare(b.date||''))
     .map(r => `
     <tr>
       <td>${escapeHtml(r.date||'')}</td>
@@ -1197,6 +1204,10 @@ function otherLeaveTabHtml(lv){
   const balance = overtimeBalanceHours();
   return `
     <div class="card-hint" style="margin-bottom:10px;">「補休」時數會從「加班時數」分頁累積的餘額扣抵，目前補休餘額：<b style="color:var(--teal);">${balance} 小時</b></div>
+    <div class="cv-field" style="max-width:160px; margin-bottom:10px;">
+      <label>檢視年度</label>
+      <select id="lv_otherYear">${years.map(y=>`<option value="${y}" ${y===leaveViewYear?'selected':''}>${y}</option>`).join('')}</select>
+    </div>
     <div class="rwd-formrow" style="display:flex; gap:10px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; border-bottom:1px dashed var(--card-line); padding-bottom:16px;">
       <div class="lv-field"><label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">假別</label>
         <select id="lv_otherType" class="lv-fixed-input">${OTHER_LEAVE_TYPES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>
@@ -1214,7 +1225,7 @@ function otherLeaveTabHtml(lv){
     </div>
     <div class="tbl-scroll"><table>
       <thead><tr><th>日期</th><th>假別</th><th>天數/時數</th><th>備註</th><th></th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="5" class="card-hint">尚無請假紀錄</td></tr>'}</tbody>
+      <tbody>${rows || '<tr><td colspan="5" class="card-hint">這個年度尚無請假紀錄</td></tr>'}</tbody>
     </table></div>`;
 }
 
@@ -1313,6 +1324,10 @@ function bindLeaveView(){
       });
     });
   } else if(leaveViewTab === 'other'){
+    byId('lv_otherYear') && byId('lv_otherYear').addEventListener('change', e=>{
+      leaveViewYear = parseInt(e.target.value, 10);
+      render();
+    });
     byId('lv_otherUnit') && byId('lv_otherUnit').addEventListener('change', e=>{
       const isHour = e.target.value === 'hour';
       byId('lv_otherDayAmount').style.display = isHour ? 'none' : '';
@@ -1328,6 +1343,7 @@ function bindLeaveView(){
       if(!amount || parseFloat(amount) <= 0){ alert('請輸入天數或時數'); return; }
       const note = byId('lv_otherNote').value;
       getLeave().other.push({id:uid(), type, date, amount, unit, note});
+      leaveViewYear = parseInt(date.slice(0,4), 10);
       scheduleSave(true);
       render();
     });
@@ -1485,6 +1501,7 @@ function journalModalHtml(){
   return `
     <div class="modal-overlay" id="journalModalOverlay">
       <div class="modal-box">
+        <button type="button" class="modal-x-close" id="jnCloseX" title="關閉" aria-label="關閉">✕</button>
         <div class="modal-title">設定工作日誌</div>
         <div class="modal-row">
           <label>案名</label>
@@ -1586,6 +1603,7 @@ function bindJournalView(){
 
 function bindJournalModal(){
   const byId = id => document.getElementById(id);
+  byId('jnCloseX') && byId('jnCloseX').addEventListener('click', ()=>{ byId('jnCancel') && byId('jnCancel').click(); });
   byId('jn_caseName') && byId('jn_caseName').addEventListener('input', e=>{
     journalDraft.caseName = e.target.value;
   });
@@ -1642,6 +1660,7 @@ function changeCredModalHtml(errorMsg, successMsg){
   return `
     <div class="modal-overlay" id="changeCredOverlay">
       <div class="modal-box">
+        <button type="button" class="modal-x-close" id="ccCloseX" title="關閉" aria-label="關閉">✕</button>
         <div class="modal-title">更換代號／密碼</div>
         <div class="card-hint" style="margin-bottom:14px;">請先輸入目前的代號與密碼確認身分，再設定新的代號與密碼。原本代號密碼輸入錯誤將無法更換。</div>
         ${errorMsg ? `<div style="color:var(--deadline-red); font-size:12.5px; margin-bottom:10px; font-weight:700;">${escapeHtml(errorMsg)}</div>` : ''}
@@ -1666,6 +1685,7 @@ function closeChangeCredModal(){
   document.getElementById('credModalArea').innerHTML = '';
 }
 function bindChangeCredModal(){
+  document.getElementById('ccCloseX') && document.getElementById('ccCloseX').addEventListener('click', closeChangeCredModal);
   document.getElementById('ccCancel') && document.getElementById('ccCancel').addEventListener('click', closeChangeCredModal);
   document.getElementById('changeCredOverlay') && document.getElementById('changeCredOverlay').addEventListener('click', (e)=>{
     if(e.target.id === 'changeCredOverlay') closeChangeCredModal();
@@ -1739,6 +1759,7 @@ function deleteAccountModalHtml(errorMsg){
   return `
     <div class="modal-overlay" id="deleteAccountOverlay">
       <div class="modal-box">
+        <button type="button" class="modal-x-close" id="daCloseX" title="關閉" aria-label="關閉">✕</button>
         <div class="modal-title">刪除帳號資料</div>
         <div style="background:var(--deadline-red-soft); border:1px solid var(--deadline-red); border-radius:8px; padding:12px; margin-bottom:14px;">
           <div style="color:var(--deadline-red); font-weight:700; font-size:13px;">⚠ 此操作會永久刪除這個代號底下所有案件、工作進度、聯絡窗口資料，刪除後無法復原！</div>
@@ -1764,6 +1785,7 @@ function closeDeleteAccountModal(){
   document.getElementById('credModalArea').innerHTML = '';
 }
 function bindDeleteAccountModal(){
+  document.getElementById('daCloseX') && document.getElementById('daCloseX').addEventListener('click', closeDeleteAccountModal);
   document.getElementById('daCancel') && document.getElementById('daCancel').addEventListener('click', closeDeleteAccountModal);
   document.getElementById('deleteAccountOverlay') && document.getElementById('deleteAccountOverlay').addEventListener('click', (e)=>{
     if(e.target.id === 'deleteAccountOverlay') closeDeleteAccountModal();
@@ -2132,6 +2154,7 @@ function deadlineNoticeHtml(list){
   return `
     <div class="modal-overlay" id="deadlineNoticeOverlay">
       <div class="modal-box">
+        <button type="button" class="modal-x-close" id="dnCloseX" title="關閉" aria-label="關閉">✕</button>
         <div class="modal-title">提醒事項</div>
         <div class="card-hint" style="margin-bottom:12px;">以下是即將到期／已逾期的審查日期與期限，以及您設定的備註提醒</div>
         <div id="deadlineNoticeList">${rows}</div>
@@ -2158,6 +2181,9 @@ function checkDeadlineReminders(){
   bindDeadlineNotice();
 }
 function bindDeadlineNotice(){
+  document.getElementById('dnCloseX') && document.getElementById('dnCloseX').addEventListener('click', ()=>{
+    document.getElementById('deadlineNoticeArea').innerHTML = '';
+  });
   document.getElementById('deadlineNoticeClose') && document.getElementById('deadlineNoticeClose').addEventListener('click', ()=>{
     document.getElementById('deadlineNoticeArea').innerHTML = '';
   });
@@ -2325,6 +2351,7 @@ function contactModalHtml(c){
   return `
     <div class="modal-overlay" id="contactModalOverlay">
       <div class="modal-box">
+        <button type="button" class="modal-x-close" id="cmCloseX" title="關閉" aria-label="關閉">✕</button>
         <div class="modal-title">聯絡窗口</div>
         <div class="modal-row">
           <label>類型</label>
@@ -2430,6 +2457,7 @@ function progressModalHtml(c){
   return `
     <div class="modal-overlay" id="progressModalOverlay">
       <div class="modal-box">
+        <button type="button" class="modal-x-close" id="pmCloseX" title="關閉" aria-label="關閉">✕</button>
         <div class="modal-title">設定工作進度</div>
 
         <div class="modal-row">
@@ -2502,6 +2530,8 @@ let materialsModalOpen = false;
 let materialsDraft = null;
 let remindersModalOpen = false;
 let remindersDraft = null;
+let reminderItemModalOpen = false;
+let reminderItemDraft = null; // {id(''=新增), caseId, text, date, time, note, done}
 let basicModalOpen = false;
 let basicDraft = null;
 
@@ -2998,6 +3028,7 @@ function caseView(){
     ${contactModalOpen ? contactModalHtml(c) : ''}
     ${materialsModalOpen ? materialsModalHtml(c) : ''}
     ${remindersModalOpen ? remindersModalHtml(c) : ''}
+    ${reminderItemModalOpen ? reminderItemModalHtml() : ''}
     ${basicModalOpen ? basicModalHtml() : ''}`;
 }
 
@@ -3072,6 +3103,7 @@ function pdfExportModalHtml(errorMsg){
   return `
     <div class="modal-overlay" id="pdfExportOverlay">
       <div class="modal-box" style="max-width:480px;">
+        <button type="button" class="modal-x-close" id="pdfCloseX" title="關閉" aria-label="關閉">✕</button>
         <div class="modal-title">匯出PDF</div>
         <div class="modal-row">
           <label>選擇分頁</label>
@@ -3094,6 +3126,7 @@ function closePdfExportModal(){
   document.getElementById('credModalArea').innerHTML = '';
 }
 function bindPdfExportModal(){
+  document.getElementById('pdfCloseX') && document.getElementById('pdfCloseX').addEventListener('click', closePdfExportModal);
   document.getElementById('pdfExportCancel') && document.getElementById('pdfExportCancel').addEventListener('click', closePdfExportModal);
   document.getElementById('pdfExportOverlay') && document.getElementById('pdfExportOverlay').addEventListener('click', (e)=>{
     if(e.target.id === 'pdfExportOverlay') closePdfExportModal();
@@ -3549,6 +3582,13 @@ function bindEvents(){
     remindersModalOpen = true;
     render();
   });
+  document.querySelectorAll('[data-redit]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const item = getReminders().find(r=>r.id===btn.dataset.redit);
+      if(!item) return;
+      openReminderItemModal(item.caseId, item);
+    });
+  });
   document.getElementById('cvEditProgress') && document.getElementById('cvEditProgress').addEventListener('click', ()=>{
     const existing = getProgressForCase(caseViewSelectedId);
     progressDraft = existing ? Object.assign({}, existing) : blankProgress(caseViewSelectedId);
@@ -3583,6 +3623,9 @@ function bindEvents(){
   if(remindersModalOpen && remindersDraft){
     bindRemindersModal();
   }
+  if(reminderItemModalOpen && reminderItemDraft){
+    bindReminderItemModal();
+  }
   if(basicModalOpen && basicDraft){
     bindBasicModal();
   }
@@ -3590,6 +3633,7 @@ function bindEvents(){
 
 function bindContactModal(){
   const byId = id => document.getElementById(id);
+  byId('cmCloseX') && byId('cmCloseX').addEventListener('click', ()=>{ byId('cmCancel') && byId('cmCancel').click(); });
   const renderKeepModalScroll = ()=>{
     const box = document.querySelector('#contactModalOverlay .modal-box');
     const scrollTop = box ? box.scrollTop : 0;
@@ -3705,6 +3749,7 @@ function basicModalHtml(){
   return `
     <div class="modal-overlay" id="basicModalOverlay">
       <div class="modal-box">
+        <button type="button" class="modal-x-close" id="bmCloseX" title="關閉" aria-label="關閉">✕</button>
         <div class="modal-title">設定基本資料</div>
         <div class="modal-row"><label>資料夾</label><input type="text" id="bm_folder" value="${escapeHtml(d.folder||'')}"></div>
         <div class="modal-row"><label>案名</label><input type="text" id="bm_name" value="${escapeHtml(d.name)}"></div>
@@ -3746,6 +3791,7 @@ function basicModalHtml(){
 }
 function bindBasicModal(){
   const byId = id => document.getElementById(id);
+  byId('bmCloseX') && byId('bmCloseX').addEventListener('click', ()=>{ byId('bmCancel') && byId('bmCancel').click(); });
   byId('bm_folder') && byId('bm_folder').addEventListener('input', e=>{ basicDraft.folder = e.target.value; });
   byId('bm_name') && byId('bm_name').addEventListener('input', e=>{ basicDraft.name = e.target.value; });
   byId('bm_client') && byId('bm_client').addEventListener('input', e=>{ basicDraft.client = e.target.value; });
@@ -3822,6 +3868,7 @@ function materialsModalHtml(c){
   return `
     <div class="modal-overlay" id="materialsModalOverlay">
       <div class="modal-box">
+        <button type="button" class="modal-x-close" id="mdCloseX" title="關閉" aria-label="關閉">✕</button>
         <div class="modal-title">設定水保所需資料</div>
         <div id="materialsDraftList">${rows || '<div class="card-hint" style="margin:0 0 8px;">尚無項目</div>'}</div>
         <div style="display:flex; gap:6px; margin-top:10px;">
@@ -3837,6 +3884,7 @@ function materialsModalHtml(c){
 }
 function bindMaterialsModal(){
   const byId = id => document.getElementById(id);
+  byId('mdCloseX') && byId('mdCloseX').addEventListener('click', ()=>{ byId('mdCancel') && byId('mdCancel').click(); });
   document.querySelectorAll('.md-check').forEach(cb=>{
     cb.addEventListener('change', ()=>{
       const item = materialsDraft.items.find(x=>x.id===cb.dataset.id);
@@ -3880,117 +3928,132 @@ function timeSelectOptions(selectedHour){
   return hourOpts;
 }
 function remindersModalHtml(c){
-  const draft = remindersDraft;
-  const rows = draft.items.map(r=>{
-    const [rh, rm] = (r.time||'').split(':');
-    return `
-    <div class="modal-ext-row" data-id="${r.id}" style="flex-wrap:wrap; border:1px solid var(--card-line); border-radius:6px; padding:8px; margin-bottom:6px; justify-content:flex-start;">
-      <div style="flex:1 1 60%; min-width:180px;">
-        <label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">提醒內容</label>
-        <input type="text" class="rd-text" data-id="${r.id}" value="${escapeHtml(r.text||'')}">
+  const items = getRemindersForCase(c.id).slice().sort((a,b)=> (a.date||'9999').localeCompare(b.date||'9999'));
+  const rows = items.map(r=>`
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid var(--card-line); font-size:13px;">
+      <div>
+        <div>${escapeHtml(r.text||'（未填寫內容）')}</div>
+        ${r.date ? `<div class="card-hint" style="margin:2px 0 0;">提醒日期：${escapeHtml(toROC(r.date))}${r.time ? ' '+escapeHtml(r.time) : ''}</div>` : ''}
       </div>
-      <div style="flex:0 0 150px;">
-        <label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">提醒日期（選填）</label>
-        <input type="date" class="rd-date" data-id="${r.id}" value="${r.date||''}">
+      <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+        <span class="badge ${r.done?'badge-moss':'badge-amber'}" style="white-space:nowrap;">${r.done?'已處理':'未處理'}</span>
+        <button class="btn ghost" data-redit="${r.id}" style="padding:4px 10px; font-size:12px;">✎ 編輯</button>
       </div>
-      <div style="flex:0 0 150px;">
-        <label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">提醒時間（選填，24小時制）</label>
-        <div style="display:flex; align-items:center; gap:4px;">
-          <select class="rd-hour" data-id="${r.id}" style="min-width:64px;"><option value="">－</option>${timeSelectOptions(rh)}</select>
-          <span>：</span>
-          <select class="rd-min" data-id="${r.id}" style="min-width:64px;">
-            <option value="">－</option>
-            <option value="00" ${rm==='00'?'selected':''}>00</option>
-            <option value="30" ${rm==='30'?'selected':''}>30</option>
-          </select>
-        </div>
-      </div>
-      <div style="flex:1 1 100%;">
-        <label style="font-size:10.5px; color:var(--ink-soft); margin:0 0 3px;">備註（選填）</label>
-        <input type="text" class="rd-note" data-id="${r.id}" value="${escapeHtml(r.note||'')}">
-      </div>
-      <label style="display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--ink-soft); margin:6px 0 0;">
-        <input type="checkbox" class="rd-done" data-id="${r.id}" ${r.done?'checked':''} style="width:auto;"> 已處理
-      </label>
-      <button class="rowdel" data-rd-del="${r.id}" title="刪除此筆" style="margin-left:auto; align-self:flex-start;">✕</button>
-    </div>`;
-  }).join('');
+    </div>`).join('');
   return `
     <div class="modal-overlay" id="remindersModalOverlay">
       <div class="modal-box">
+        <button type="button" class="modal-x-close" id="rdCloseX" title="關閉" aria-label="關閉">✕</button>
         <div class="modal-title">設定備註提醒</div>
         <div class="card-hint" style="margin-bottom:10px;">有填提醒日期的話，當天(或之後)登入系統會跳出通知，跟期限提醒是同一套機制；時間僅供參考顯示，不影響跳出時機</div>
         <div id="remindersDraftList">${rows || '<div class="card-hint" style="margin:0 0 8px;">尚無備註提醒</div>'}</div>
-        <button class="btn ghost" id="rdAddBtn" style="margin-top:4px;">＋ 新增提醒</button>
+        <button class="btn ghost" id="rdAddBtn" style="margin-top:8px;">＋ 新增提醒</button>
         <div class="modal-actions">
-          <button class="btn ghost" id="rdCancel">取消</button>
-          <button class="btn" id="rdSave">儲存</button>
+          <button class="btn" id="rdCancel">關閉</button>
         </div>
       </div>
     </div>`;
 }
+function openReminderItemModal(caseId, item){
+  reminderItemDraft = item
+    ? { id:item.id, caseId, text:item.text||'', date:item.date||'', time:item.time||'', note:item.note||'', done:!!item.done }
+    : { id:'', caseId, text:'', date:'', time:'', note:'', done:false };
+  reminderItemModalOpen = true;
+  render();
+}
+function reminderItemModalHtml(){
+  const d = reminderItemDraft;
+  const [rh, rm] = (d.time||'').split(':');
+  const isNew = !d.id;
+  return `
+    <div class="modal-overlay" id="reminderItemModalOverlay">
+      <div class="modal-box">
+        <button type="button" class="modal-x-close" id="riCloseX" title="關閉" aria-label="關閉">✕</button>
+        <div class="modal-title">${isNew ? '新增提醒' : '編輯提醒'}</div>
+        <div class="modal-row">
+          <label>提醒內容</label>
+          <input type="text" id="ri_text" value="${escapeHtml(d.text)}">
+        </div>
+        <div class="modal-row">
+          <label>提醒日期（選填）</label>
+          <input type="date" id="ri_date" value="${d.date||''}">
+        </div>
+        <div class="modal-row">
+          <label>提醒時間（選填，24小時制）</label>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <select id="ri_hour" style="min-width:64px;"><option value="">－</option>${timeSelectOptions(rh)}</select>
+            <span>：</span>
+            <select id="ri_min" style="min-width:64px;">
+              <option value="">－</option>
+              <option value="00" ${rm==='00'?'selected':''}>00</option>
+              <option value="30" ${rm==='30'?'selected':''}>30</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-row">
+          <label>備註（選填）</label>
+          <input type="text" id="ri_note" value="${escapeHtml(d.note)}">
+        </div>
+        <label style="display:flex; align-items:center; gap:5px; font-size:12.5px; color:var(--ink-soft); margin-bottom:6px;">
+          <input type="checkbox" id="ri_done" ${d.done?'checked':''} style="width:auto;"> 已處理
+        </label>
+        <div class="modal-actions">
+          ${isNew ? '' : '<button class="btn ghost" id="riDelete" style="color:var(--deadline-red); border-color:var(--deadline-red-soft); margin-right:auto;">刪除</button>'}
+          <button class="btn ghost" id="riCancel">‹ 返回</button>
+          <button class="btn" id="riSave">儲存</button>
+        </div>
+      </div>
+    </div>`;
+}
+function bindReminderItemModal(){
+  const byId = id => document.getElementById(id);
+  if(!byId('reminderItemModalOverlay')) return;
+  const close = ()=>{ reminderItemModalOpen = false; reminderItemDraft = null; render(); };
+  byId('riCloseX') && byId('riCloseX').addEventListener('click', close);
+  byId('riCancel') && byId('riCancel').addEventListener('click', close);
+  byId('reminderItemModalOverlay').addEventListener('click', e=>{
+    if(e.target.id === 'reminderItemModalOverlay') close();
+  });
+  byId('riDelete') && byId('riDelete').addEventListener('click', ()=>{
+    state.reminders = getReminders().filter(r=>r.id!==reminderItemDraft.id);
+    reminderItemModalOpen = false; reminderItemDraft = null;
+    scheduleSave(true); render();
+  });
+  byId('riSave') && byId('riSave').addEventListener('click', ()=>{
+    const text = byId('ri_text').value;
+    const date = byId('ri_date').value;
+    const h = byId('ri_hour').value, m = byId('ri_min').value;
+    const time = (h && m) ? `${h}:${m}` : '';
+    const note = byId('ri_note').value;
+    const done = byId('ri_done').checked;
+    const d = reminderItemDraft;
+    if(d.id){
+      const rec = getReminders().find(r=>r.id===d.id);
+      if(rec){ rec.text = text; rec.date = date; rec.time = time; rec.note = note; rec.done = done; }
+    } else {
+      state.reminders.push({id:uid(), caseId:d.caseId, text, date, time, note, done});
+    }
+    reminderItemModalOpen = false; reminderItemDraft = null;
+    scheduleSave(true); render();
+  });
+}
+
+
 function bindRemindersModal(){
   const byId = id => document.getElementById(id);
-  document.querySelectorAll('.rd-text').forEach(inp=>{
-    inp.addEventListener('input', ()=>{
-      const r = remindersDraft.items.find(x=>x.id===inp.dataset.id);
-      if(r) r.text = inp.value;
-    });
-  });
-  document.querySelectorAll('.rd-date').forEach(inp=>{
-    inp.addEventListener('input', ()=>{
-      const r = remindersDraft.items.find(x=>x.id===inp.dataset.id);
-      if(r) r.date = inp.value;
-    });
-  });
-  document.querySelectorAll('.rd-hour, .rd-min').forEach(sel=>{
-    sel.addEventListener('change', ()=>{
-      const r = remindersDraft.items.find(x=>x.id===sel.dataset.id);
-      if(!r) return;
-      const hourSel = document.querySelector(`.rd-hour[data-id="${sel.dataset.id}"]`);
-      const minSel = document.querySelector(`.rd-min[data-id="${sel.dataset.id}"]`);
-      const h = hourSel ? hourSel.value : '';
-      const m = minSel ? minSel.value : '';
-      r.time = (h && m) ? `${h}:${m}` : '';
-    });
-  });
-  document.querySelectorAll('.rd-note').forEach(inp=>{
-    inp.addEventListener('input', ()=>{
-      const r = remindersDraft.items.find(x=>x.id===inp.dataset.id);
-      if(r) r.note = inp.value;
-    });
-  });
-  document.querySelectorAll('.rd-done').forEach(cb=>{
-    cb.addEventListener('change', ()=>{
-      const r = remindersDraft.items.find(x=>x.id===cb.dataset.id);
-      if(r) r.done = cb.checked;
-    });
-  });
-  document.querySelectorAll('[data-rd-del]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      remindersDraft.items = remindersDraft.items.filter(x=>x.id!==btn.dataset.rdDel);
-      render();
-    });
-  });
+  byId('rdCloseX') && byId('rdCloseX').addEventListener('click', ()=>{ byId('rdCancel') && byId('rdCancel').click(); });
   byId('rdAddBtn') && byId('rdAddBtn').addEventListener('click', ()=>{
-    remindersDraft.items.push({id:uid(), text:"", date:"", time:"", note:"", done:false});
-    render();
+    const caseId = remindersDraft.caseId;
+    openReminderItemModal(caseId, null);
   });
   byId('rdCancel') && byId('rdCancel').addEventListener('click', ()=>{
     remindersModalOpen = false; remindersDraft = null; render();
-  });
-  byId('rdSave') && byId('rdSave').addEventListener('click', ()=>{
-    const caseId = remindersDraft.caseId;
-    state.reminders = getReminders().filter(r=>r.caseId!==caseId).concat(
-      remindersDraft.items.map(item=>({...item, caseId}))
-    );
-    remindersModalOpen = false; remindersDraft = null;
-    scheduleSave(); render();
   });
 }
 
 function bindProgressModal(){
   const byId = id => document.getElementById(id);
+  byId('pmCloseX') && byId('pmCloseX').addEventListener('click', ()=>{ byId('pmCancel') && byId('pmCancel').click(); });
   byId('pm_filingDate') && byId('pm_filingDate').addEventListener('input', e=>{ progressDraft.filingDate = e.target.value; });
   byId('pm_viewCopy') && byId('pm_viewCopy').addEventListener('input', e=>{ progressDraft.viewCopy = e.target.value; });
   byId('pm_finalCopy') && byId('pm_finalCopy').addEventListener('input', e=>{ progressDraft.finalCopy = e.target.value; });
@@ -4079,6 +4142,12 @@ document.addEventListener('click', (e)=>{
   if(e.target.closest('.cv-dropdown') || e.target.id === 'cvSearchInput') return;
   caseDropdownOpen = false;
   render();
+});
+/* ESC鍵關閉目前開啟的彈跳視窗：觸發畫面上「最上層」視窗的✕關閉按鈕(可能疊了兩層，如設定備註提醒→編輯提醒)，行為跟按✕/取消一致 */
+document.addEventListener('keydown', (e)=>{
+  if(e.key !== 'Escape') return;
+  const closeBtns = document.querySelectorAll('.modal-x-close');
+  if(closeBtns.length) closeBtns[closeBtns.length - 1].click();
 });
 
 /* ============ 啟動 ============ */
