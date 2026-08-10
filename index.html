@@ -234,6 +234,11 @@ td.readonly{background:transparent !important;}
 .cv-picker-stack > .btn{align-self:flex-start;}
 .cv-detail-tabs{display:flex; gap:6px; flex-wrap:wrap; margin:16px 0 6px;}
 .cv-detail-tabs .btn{font-size:11.5px; padding:7px 13px;}
+
+/* 休假紀錄新增列（特休/假別/加班時數）欄位：不分桌面/平板/手機，一律「名稱在上、輸入框在下」，
+   避免label跟input同一行時因欄位寬度不同、有的欄位換行有的沒換行，整排看起來不對齊（原本只在平板寬度生效，桌面沒套用） */
+.lv-field{display:flex; flex-direction:column; align-items:flex-start;}
+.lv-field label{display:block;}
 .cv-dropdown{position:relative; width:100%;}
 .cv-dropdown-toggle{
   font-family:'Noto Serif TC', serif; font-size:13px; font-weight:600; color:var(--ink);
@@ -310,11 +315,6 @@ td.readonly{background:transparent !important;}
   /* 日期欄位(原生date控制項)跟其他select/input高度不一致，日期看起來比較「窄」(矮)；
      統一給所有欄位固定高度，包含備註欄，讓整排視覺高度一致 */
   .lv-field input, .lv-field select{height:40px !important; box-sizing:border-box;}
-  /* 休假紀錄新增列：日期/單位/數量/備註等欄位的label跟input，平板寬度下因flex自動收縮量不一致，
-     導致有的欄位label換行到input上方、有的沒換行卡在同一行，看起來每個欄位對不齊；
-     強制label一律獨立成塊(在自己的一行)，讓所有欄位統一都是「名稱在上、輸入框在下」 */
-  .lv-field{display:flex; flex-direction:column; align-items:flex-start;}
-  .lv-field label{display:block;}
 }
 
 /* ---------- 手機版 RWD ---------- */
