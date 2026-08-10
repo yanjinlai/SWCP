@@ -357,6 +357,11 @@ td.readonly{background:transparent !important;}
   /* iOS Safari對input[type=date]會套用自己的原生外觀/內距，即使CSS設了width:100%+box-sizing:border-box，
      實際可視範圍仍可能比其他input多出一截、跟左右對不齊；關閉原生外觀讓date欄位完全比照text/select的CSS盒模型渲染 */
   input[type=date]{-webkit-appearance:none; appearance:none;}
+  /* 承上：關閉原生外觀後，「尚未選擇日期」的空白狀態內部沒有實際文字內容撐開高度，
+     跟已選日期/text/select等有內容的欄位高度會對不上；統一給固定高度，不論有沒有值都一樣高 */
+  input[type=text], input[type=date], input[type=password], input[type=number], select{
+    height:40px;
+  }
   input[type=checkbox]{width:16px; height:16px;}
   .cv-search-input, .cv-picker-stack select, .cv-dropdown-toggle{font-size:15px;}
 
