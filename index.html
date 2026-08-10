@@ -354,6 +354,9 @@ td.readonly{background:transparent !important;}
     font-size:16px; /* 避免iOS Safari輸入框focus時自動放大畫面 */
     padding:8px 9px;
   }
+  /* iOS Safari對input[type=date]會套用自己的原生外觀/內距，即使CSS設了width:100%+box-sizing:border-box，
+     實際可視範圍仍可能比其他input多出一截、跟左右對不齊；關閉原生外觀讓date欄位完全比照text/select的CSS盒模型渲染 */
+  input[type=date]{-webkit-appearance:none; appearance:none;}
   input[type=checkbox]{width:16px; height:16px;}
   .cv-search-input, .cv-picker-stack select, .cv-dropdown-toggle{font-size:15px;}
 
