@@ -2065,6 +2065,15 @@ function getWatchDateForCase(p){
   if(reviewDate) return {reviewNo:n, date:reviewDate, kind:'審查日期'};
   return null;
 }
+function nearestDeadlineDateForCase(c){
+  // 取得該案件目前進度最新的期限日期（展延期限 > 修正期限 > 審查日期），供依期限排序使用；沒有期限的案件回傳空字串（排序時視為最後）
+  const p = getProgressForCase(c.id);
+  const info = getWatchDateForCase(p);
+  return info ? info.date : '';
+}
+function sortCasesByDeadline(list){
+  return list.slice().sort((a,b) => (nearestDeadlineDateForCase(a) || '9999-99-99').localeCompare(nearestDeadlineDateForCase(b) || '9999-99-99'));
+}
 function computeDueSoonList(){
   const list = [];
   state.cases.filter(c=>c.status==="進行中" || c.status==="暫停").forEach(c=>{
@@ -2645,8 +2654,8 @@ function progressCardHtmlForPdf(c){
     </div>`;
 }
 function progressOverviewView(){
-  const ongoing = state.cases.filter(c => c.status === "進行中");
-  const paused = state.cases.filter(c => c.status === "暫停");
+  const ongoing = sortCasesByDeadline(state.cases.filter(c => c.status === "進行中"));
+  const paused = sortCasesByDeadline(state.cases.filter(c => c.status === "暫停"));
   if(ongoing.length === 0 && paused.length === 0){
     return `
       <div class="card-top">
@@ -2838,12 +2847,10 @@ function caseView(){
   }
   // 狀態篩選（決定目前顯示哪個案件）與關鍵字搜尋（只影響下拉選單的選項）分開處理，
   // 這樣打關鍵字時目前顯示的案件內容不會一直跳來跳去
-  const statusFiltered = state.cases
-    .filter(c => c.status === caseViewStatusFilter)
-    .slice()
-    .sort((a,b) => caseViewStatusFilter==="已結案"
-      ? (b.actualClose||'').localeCompare(a.actualClose||'')
-      : (b.updatedAt||0) - (a.updatedAt||0));
+  const statusFiltered = caseViewStatusFilter==="已結案"
+    ? state.cases.filter(c => c.status === caseViewStatusFilter).slice()
+        .sort((a,b) => (b.actualClose||'').localeCompare(a.actualClose||''))
+    : sortCasesByDeadline(state.cases.filter(c => c.status === caseViewStatusFilter));
   if(!caseViewSelectedId || !statusFiltered.find(c=>c.id===caseViewSelectedId)){
     caseViewSelectedId = statusFiltered.length ? statusFiltered[0].id : null;
   }
