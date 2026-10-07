@@ -446,6 +446,7 @@ body.pdf-exporting button{display:none !important;}
 <div id="credModalArea"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -462,6 +463,7 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+const auth = firebase.auth();
 
 /* ============ 常數 ============ */
 const STAGES = ["掛件","第1次審查","第2次審查","第3次審查","檢視本","定稿本"];
@@ -492,7 +494,7 @@ const DEFAULT_REVIEW_AGENCIES = [
   {name:"高雄市土木技師公會", contactName:"顏嫚萱/詹美華", phone:"(07)5520279", lineId:"", email:"kpcea@ms27.hinet.net", address:"804高雄市鼓山區中華一路203號3樓"},
   {name:"社團法人高雄市水利技師公會", contactName:"張馨予", phone:"(07)8157321", lineId:"", email:"khea.water@msa.hinet.net", address:"806620高雄市前鎮區擴建路1-22號9樓"},
 ];
-const LOCAL_KEY = "wst_session_v1"; // 記住此瀏覽器上次登入的代號/文件ID
+const LOCAL_KEY = "wst_session_v1"; // 舊版用來記住上次登入的文件ID；新版改由 Firebase 登入狀態記住，啟動時會清掉這筆舊資料
 
 const uid = () => Math.random().toString(36).slice(2,10);
 
@@ -809,7 +811,7 @@ function getMaterialsChecklist(c){
 let state = null;
 let activeTab = "cases";
 let saveTimer = null;
-let currentDocId = null;
+let currentUid = null;
 let currentUserCode = null;
 let undoStack = [];
 let pendingSnapshot = true;
@@ -838,61 +840,111 @@ function doUndo(){
   render();
 }
 
-/* ============ 帳號（代號＋密碼）============ */
+/* ============ 帳號（代號＋密碼，使用 Firebase Authentication）============
+   資料存放：data/{登入編號}，只有本人登入後才能讀寫（由資料庫規則保護）
+   代號登錄：codes/{代號雜湊} = {code, uid, updatedAt}，只有 code 欄位公開（用來判斷代號是否已被使用），整份清單只有管理者能看
+   舊版資料：users/{sha256(代號::密碼)}，舊帳號第一次用新版登入時會自動搬到 data/，搬完刪除舊資料 */
 async function sha256Hex(str){
   const enc = new TextEncoder().encode(str);
   const buf = await crypto.subtle.digest('SHA-256', enc);
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-/* ============ 管理者頁面（列出所有代號、可刪除不用的帳號） ============
-   進入方式：網址後面加 #admin，例如 https://xxx.github.io/SWCP/#admin
-   密碼預設是 water2026admin（僅供示範），強烈建議自行更換：
-   在瀏覽器打開這個網頁後，按F12開console，貼上：
-   await sha256Hex('你想要的新密碼')
-   把印出來的一長串英數字，貼到下面 ADMIN_PASSWORD_HASH 常數取代掉即可，密碼本身不會存在程式碼裡 */
-const ADMIN_PASSWORD_HASH = "17be0145d9fe53fd20c4be3c5865499eb0e6920597bb64a3842f9fb8b9c464a3";
-
-function adminLoginScreenHtml(errorMsg){
-  return `
-    <div style="max-width:380px; margin:40px auto;">
-      <div class="card-title" style="margin-bottom:4px;">管理者登入</div>
-      <div class="card-hint" style="margin-bottom:16px;">此頁面可以列出所有已註冊的代號，並清除不再使用的帳號資料。</div>
-      ${errorMsg ? `<div style="color:var(--clay); font-size:12.5px; margin-bottom:10px;">${escapeHtml(errorMsg)}</div>` : ''}
-      <div class="modal-row">
-        <label>管理者密碼</label>
-        <input type="password" id="adminPassword" placeholder="">
-      </div>
-      <button class="btn" id="adminLoginSubmit" style="width:100%; padding:10px;">登入</button>
-      <div style="text-align:center; margin-top:14px;"><a href="#" id="adminBackToLogin" style="color:var(--teal); font-size:12px;">← 回一般登入畫面</a></div>
-    </div>`;
+async function codeRegistryKey(code){
+  return await sha256Hex('code::' + code);
 }
-function renderAdminLogin(errorMsg){
-  document.getElementById('tabs').innerHTML = '';
-  document.getElementById('userInfo').innerHTML = '';
-  document.getElementById('cardArea').innerHTML = adminLoginScreenHtml(errorMsg);
-  const submit = document.getElementById('adminLoginSubmit');
-  const pwEl = document.getElementById('adminPassword');
-  const doSubmit = async () => {
-    const pw = (pwEl.value||'').trim();
-    if(!pw){ renderAdminLogin('請輸入密碼'); return; }
-    const hash = await sha256Hex(pw);
-    if(hash !== ADMIN_PASSWORD_HASH){
-      renderAdminLogin('密碼錯誤');
-      return;
-    }
-    await renderAdminPanel();
+/* 代號＋密碼 → Firebase 登入用的信箱/密碼（使用者不需要知道，畫面上一樣只輸入代號密碼） */
+async function authCredsFor(code, pw){
+  const codeKey = await codeRegistryKey(code);
+  return {
+    codeKey,
+    email: codeKey + '@water-soil-tracker.firebaseapp.com',
+    password: await sha256Hex('auth::' + code + '::' + pw),
+    legacyDocId: await sha256Hex(code + '::' + pw)
   };
-  submit.addEventListener('click', doSubmit);
-  pwEl.addEventListener('keydown', e=>{ if(e.key==='Enter') doSubmit(); });
-  document.getElementById('adminBackToLogin').addEventListener('click', (e)=>{
-    e.preventDefault();
-    location.hash = '';
-    renderLoginScreen();
+}
+function isWrongCredError(e){
+  return !!e && ['auth/invalid-credential','auth/invalid-login-credentials','auth/user-not-found','auth/wrong-password'].includes(e.code);
+}
+function authErrorText(e){
+  if(!e) return '';
+  if(e.code === 'auth/operation-not-allowed') return 'Firebase 尚未開啟「電子郵件/密碼」登入方式，請到 Firebase 主控台的 Authentication 開啟';
+  if(e.code === 'auth/network-request-failed') return '網路連線失敗，請確認網路後重試';
+  if(e.code === 'auth/too-many-requests') return '嘗試次數太多，請稍等幾分鐘再試';
+  if(e.code === 'PERMISSION_DENIED' || /permission_denied/i.test(e.message||'')) return '資料庫拒絕存取，請確認 Firebase 資料庫規則已更新為新版';
+  return e.code || e.message || '';
+}
+async function isCodeRegistered(codeKey){
+  const snap = await db.ref('codes/' + codeKey + '/code').once('value');
+  if(snap.exists()) return true;
+  // 相容很舊的格式：value 直接是代號字串本身（資料庫規則只開放讀取這種字串格式）
+  try{
+    const old = await db.ref('codes/' + codeKey).once('value');
+    return typeof old.val() === 'string';
+  }catch(e){ return false; }
+}
+async function registerCode(code, uidValue){
+  const key = await codeRegistryKey(code);
+  await db.ref('codes/' + key).set({ code, uid: uidValue, updatedAt: firebase.database.ServerValue.TIMESTAMP });
+}
+async function reauthCurrentUser(code, pw){
+  const user = auth.currentUser;
+  const c = await authCredsFor(code, pw);
+  if(!user || c.email !== user.email) return null;
+  try{
+    await user.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(c.email, c.password));
+  }catch(e){
+    if(isWrongCredError(e)) return null;
+    throw e;
+  }
+  return c;
+}
+function waitForAuthReady(){
+  return new Promise(resolve=>{
+    const unsubscribe = auth.onAuthStateChanged(u=>{ unsubscribe(); resolve(u); });
   });
+}
+async function isAdminUser(){
+  const u = auth.currentUser;
+  if(!u) return false;
+  try{
+    const snap = await db.ref('admins/' + u.uid).once('value');
+    return snap.val() === true;
+  }catch(e){ return false; }
+}
+
+/* ============ 管理者頁面（列出所有代號、可刪除不用的帳號） ============
+   進入方式：用管理者的代號密碼登入後，點上方的「管理者頁面」（或網址後面加 #admin）
+   設定管理者：在 Firebase 主控台 → Realtime Database → 資料，於根目錄新增 admins / {使用者編號} = true
+   （使用者編號可在「個人設定」最下方看到） */
+async function renderAdminEntry(){
+  document.getElementById('tabs').innerHTML = '';
+  const u = auth.currentUser;
+  if(!u){
+    renderLoginScreen('請先用管理者的代號與密碼登入');
+    return;
+  }
+  if(!(await isAdminUser())){
+    document.getElementById('cardArea').innerHTML = `
+      <div style="max-width:460px; margin:40px auto;">
+        <div class="card-title" style="margin-bottom:8px;">沒有管理者權限</div>
+        <div class="card-hint" style="margin-bottom:12px;">目前登入的代號不是管理者。要設定管理者，請到 Firebase 主控台 → Realtime Database → 資料，在根目錄新增 <b>admins</b>，底下加入這個使用者編號，值設為 <b>true</b>：</div>
+        <div style="font-family:monospace; background:var(--teal-soft); padding:8px 10px; border-radius:6px; word-break:break-all; margin-bottom:14px;">${escapeHtml(u.uid)}</div>
+        <a href="#" id="adminBackToApp" style="color:var(--teal); font-size:12px;">← 回到我的進度表</a>
+      </div>`;
+    document.getElementById('adminBackToApp').addEventListener('click', (e)=>{ e.preventDefault(); leaveAdmin(); });
+    return;
+  }
+  await renderAdminPanel();
+}
+function leaveAdmin(){
+  location.hash = '';
+  if(auth.currentUser) enterSession(auth.currentUser);
+  else renderLoginScreen();
 }
 
 async function renderAdminPanel(){
+  document.getElementById('tabs').innerHTML = '';
   document.getElementById('cardArea').innerHTML = `<div class="empty">載入中…</div>`;
   let entries = [];
   try{
@@ -903,14 +955,14 @@ async function renderAdminPanel(){
         const v = val[key];
         // 相容舊格式：舊資料的value直接是代號字串本身（沒有docId/updatedAt）
         if(typeof v === 'string'){
-          return { key, code: v, docId: null, updatedAt: null };
+          return { key, code: v, uid: null, docId: null, updatedAt: null };
         }
-        return { key, code: v.code, docId: v.docId||null, updatedAt: v.updatedAt||null };
+        return { key, code: v.code, uid: v.uid||null, docId: v.docId||null, updatedAt: v.updatedAt||null };
       });
       entries.sort((a,b)=> (b.updatedAt||0) - (a.updatedAt||0));
     }
   }catch(e){
-    document.getElementById('cardArea').innerHTML = `<div class="empty">讀取失敗，請確認網路連線後重新整理頁面重試</div>`;
+    document.getElementById('cardArea').innerHTML = `<div class="empty">讀取失敗（${escapeHtml(authErrorText(e))}），請重新整理頁面重試</div>`;
     return;
   }
   document.getElementById('cardArea').innerHTML = adminPanelHtml(entries);
@@ -920,11 +972,13 @@ async function renderAdminPanel(){
 function adminPanelHtml(entries){
   const rows = entries.map(e=>{
     const timeStr = e.updatedAt ? new Date(e.updatedAt).toLocaleString('zh-TW', {hour12:false}) : '（尚無登入紀錄，可能是舊資料）';
-    const noteStr = e.docId ? '' : `<div class="card-hint" style="margin-top:2px; color:var(--amber);">此筆缺少帳號對應資訊，刪除只會釋放代號名稱，不會清除實際資料（該代號下次登入後才能完整清除）</div>`;
+    let noteStr = '';
+    if(!e.uid && e.docId) noteStr = `<div class="card-hint" style="margin-top:2px; color:var(--amber);">舊版帳號，尚未用新版登入過（資料還沒搬到受保護的位置）</div>`;
+    else if(!e.uid) noteStr = `<div class="card-hint" style="margin-top:2px; color:var(--amber);">此筆缺少帳號對應資訊，刪除只會移除清單上的代號，不會清除實際資料</div>`;
     return `<tr>
       <td class="readonly" style="font-weight:700;">${escapeHtml(e.code)}</td>
       <td class="readonly" style="white-space:nowrap;">${escapeHtml(timeStr)}${noteStr}</td>
-      <td class="readonly" style="text-align:right;"><button class="btn ghost" data-admin-del="${escapeHtml(e.key)}" data-admin-del-code="${escapeHtml(e.code)}" data-admin-del-docid="${e.docId?escapeHtml(e.docId):''}" style="color:var(--deadline-red); border-color:var(--deadline-red-soft);">✕ 刪除</button></td>
+      <td class="readonly" style="text-align:right;"><button class="btn ghost" data-admin-del="${escapeHtml(e.key)}" data-admin-del-code="${escapeHtml(e.code)}" data-admin-del-uid="${e.uid?escapeHtml(e.uid):''}" data-admin-del-docid="${e.docId?escapeHtml(e.docId):''}" style="color:var(--deadline-red); border-color:var(--deadline-red-soft);">✕ 刪除</button></td>
     </tr>`;
   }).join('');
   return `
@@ -932,7 +986,7 @@ function adminPanelHtml(entries){
       <div><div class="card-title">管理者頁面</div><div class="card-hint">目前共 ${entries.length} 個已註冊代號</div></div>
       <div style="display:flex; gap:8px; align-items:center;">
         <button class="btn ghost" id="adminRefresh">⟲ 重新整理</button>
-        <a href="#" id="adminLogout" style="color:var(--deadline-red); font-size:12px;">登出管理者</a>
+        <a href="#" id="adminBackToApp" style="color:var(--teal); font-size:12px;">← 回到我的進度表</a>
       </div>
     </div>
     <div class="tbl-scroll"><table>
@@ -943,27 +997,32 @@ function adminPanelHtml(entries){
 
 function bindAdminPanel(){
   document.getElementById('adminRefresh') && document.getElementById('adminRefresh').addEventListener('click', renderAdminPanel);
-  document.getElementById('adminLogout') && document.getElementById('adminLogout').addEventListener('click', (e)=>{
+  document.getElementById('adminBackToApp') && document.getElementById('adminBackToApp').addEventListener('click', (e)=>{
     e.preventDefault();
-    location.hash = '';
-    renderLoginScreen();
+    leaveAdmin();
   });
   document.querySelectorAll('[data-admin-del]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const key = btn.getAttribute('data-admin-del');
       const code = btn.getAttribute('data-admin-del-code');
+      const delUid = btn.getAttribute('data-admin-del-uid');
       const docId = btn.getAttribute('data-admin-del-docid');
-      const confirmMsg = docId
+      if(delUid && auth.currentUser && delUid === auth.currentUser.uid){
+        alert('這是你目前登入的帳號，請改用「刪除帳號資料」功能');
+        return;
+      }
+      const confirmMsg = (delUid || docId)
         ? `確定要刪除代號「${code}」嗎？這會把該帳號的所有案件資料永久清除，無法復原。`
-        : `確定要釋放代號「${code}」嗎？（這筆缺少帳號對應資訊，只會讓這個代號名稱可以被重新註冊，不會刪除任何案件資料）`;
+        : `確定要從清單移除代號「${code}」嗎？（這筆缺少帳號對應資訊，不會刪除任何案件資料）`;
       if(!confirm(confirmMsg)) return;
       btn.disabled = true; btn.textContent = '處理中…';
       try{
-        await db.ref('codes/' + key).remove();
+        if(delUid) await db.ref('data/' + delUid).remove();
         if(docId) await db.ref('users/' + docId).remove();
+        await db.ref('codes/' + key).remove();
         await renderAdminPanel();
       }catch(e){
-        alert('刪除失敗，請確認網路連線後重試');
+        alert('刪除失敗（' + authErrorText(e) + '），請重試');
         btn.disabled = false; btn.textContent = '✕ 刪除';
       }
     });
@@ -1000,65 +1059,82 @@ function renderLoginScreen(errorMsg){
     if(!code || !pw){ renderLoginScreen('請輸入代號與密碼'); return; }
     submit.textContent = '登入中…'; submit.disabled = true;
     try{
-      const docId = await sha256Hex(code + '::' + pw);
-      const snap = await db.ref('users/' + docId).once('value');
-      if(!snap.exists()){
-        // 這組代號密碼還沒建立過帳號 → 檢查代號是否已被別人用（不同密碼）註冊過
-        const taken = await isCodeTaken(code);
-        if(taken){
-          renderLoginScreen('這個代號已經有人使用，請確認密碼是否正確，或換一個代號');
-          return;
-        }
-      }
-      await enterWithDocId(docId, code);
+      const err = await loginWithCode(code, pw);
+      if(err) renderLoginScreen(err);
     }catch(e){
-      renderLoginScreen('登入失敗，請重試');
+      renderLoginScreen('登入失敗，請重試（' + authErrorText(e) + '）');
     }
   };
   submit.addEventListener('click', doSubmit);
   pwEl.addEventListener('keydown', e=>{ if(e.key==='Enter') doSubmit(); });
 }
 
-async function codeRegistryKey(code){
-  return await sha256Hex('code::' + code);
-}
-async function isCodeTaken(code){
-  const key = await codeRegistryKey(code);
-  const snap = await db.ref('codes/' + key).once('value');
-  return snap.exists();
-}
-async function registerCode(code, docId){
-  const key = await codeRegistryKey(code);
-  await db.ref('codes/' + key).set({ code, docId: docId||null, updatedAt: firebase.database.ServerValue.TIMESTAMP });
-}
-async function unregisterCode(code){
-  const key = await codeRegistryKey(code);
-  await db.ref('codes/' + key).remove();
+/* 登入流程：
+   1. 先用新版帳號登入
+   2. 登入不了 → 建立新版帳號（信箱已存在代表密碼錯誤）
+   3. 建立成功後，如果這個代號是舊版註冊過的 → 用舊的文件編號把資料搬過來；找不到代表密碼錯誤，撤銷剛建立的帳號
+   回傳錯誤訊息字串；成功則回傳 null */
+async function loginWithCode(code, pw){
+  const c = await authCredsFor(code, pw);
+  try{
+    await auth.signInWithEmailAndPassword(c.email, c.password);
+    await enterSession(auth.currentUser, code);
+    return null;
+  }catch(e){
+    if(!isWrongCredError(e)) throw e;
+  }
+  let cred;
+  try{
+    cred = await auth.createUserWithEmailAndPassword(c.email, c.password);
+  }catch(e){
+    if(e.code === 'auth/email-already-in-use') return '代號或密碼錯誤';
+    throw e;
+  }
+  let legacyData = null;
+  if(await isCodeRegistered(c.codeKey)){
+    const legacy = await db.ref('users/' + c.legacyDocId).once('value');
+    if(!legacy.exists()){
+      await cred.user.delete();
+      return '這個代號已經有人使用，請確認密碼是否正確，或換一個代號';
+    }
+    legacyData = legacy.val();
+  }
+  await cred.user.updateProfile({ displayName: code });
+  if(legacyData){
+    await db.ref('data/' + cred.user.uid).set({
+      state: legacyData.state || JSON.stringify(blankState()),
+      updatedAt: firebase.database.ServerValue.TIMESTAMP
+    });
+    // 搬完後刪掉舊位置的資料（失敗不影響使用，管理者之後可再清）
+    try{ await db.ref('users/' + c.legacyDocId).remove(); }catch(e){}
+  }
+  await enterSession(cred.user, code);
+  return null;
 }
 
-async function enterWithDocId(docId, code){
-  currentDocId = docId;
-  currentUserCode = code;
+async function enterSession(user, code){
+  currentUid = user.uid;
+  currentUserCode = code || user.displayName || '';
   document.getElementById('cardArea').innerHTML = `<div class="empty">載入中…</div>`;
   try{
-    const snap = await db.ref('users/' + docId).once('value');
+    const snap = await db.ref('data/' + currentUid).once('value');
     if(snap.exists()){
       const data = snap.val();
       state = data.state ? JSON.parse(data.state) : blankState();
-      // 每次登入都重新登記代號→docId對應（順便更新最後登入時間），管理者頁面靠這個資料列出帳號清單
-      await registerCode(code, docId);
     } else {
       state = blankState();
-      await db.ref('users/' + docId).set({ state: JSON.stringify(state), updatedAt: firebase.database.ServerValue.TIMESTAMP });
-      await registerCode(code, docId);
+      await db.ref('data/' + currentUid).set({ state: JSON.stringify(state), updatedAt: firebase.database.ServerValue.TIMESTAMP });
     }
-    localStorage.setItem(LOCAL_KEY, JSON.stringify({docId, code}));
-    renderUserInfoBar(code);
+    // 每次登入都重新登記代號（順便更新最後登入時間），管理者頁面靠這個資料列出帳號清單
+    if(currentUserCode){
+      try{ await registerCode(currentUserCode, currentUid); }catch(e){}
+    }
+    renderUserInfoBar(currentUserCode);
     undoStack = []; pendingSnapshot = true; updateUndoButton();
     render();
     checkDeadlineReminders();
   }catch(e){
-    document.getElementById('cardArea').innerHTML = `<div class="empty">連線失敗，請確認網路連線後重新整理頁面重試</div>`;
+    document.getElementById('cardArea').innerHTML = `<div class="empty">連線失敗（${escapeHtml(authErrorText(e))}），請重新整理頁面重試</div>`;
   }
 }
 
@@ -1075,6 +1151,13 @@ function renderUserInfoBar(code){
     document.getElementById('pdfExportLink').addEventListener('click', (e)=>{ e.preventDefault(); openPdfExportModal(); });
   }
   document.getElementById('deleteAccountLink').addEventListener('click', (e)=>{ e.preventDefault(); openDeleteAccountModal(); });
+  // 管理者才會多出「管理者頁面」連結
+  isAdminUser().then(isAdmin=>{
+    if(!isAdmin || document.getElementById('adminLink')) return;
+    const bar = document.getElementById('userInfo');
+    bar.insertAdjacentHTML('beforeend', ` · <a href="#" id="adminLink" style="color:var(--teal);">管理者頁面</a>`);
+    document.getElementById('adminLink').addEventListener('click', (e)=>{ e.preventDefault(); renderAdminEntry(); });
+  });
 }
 
 function settingsModalHtml(){
@@ -1092,6 +1175,7 @@ function settingsModalHtml(){
           <input type="checkbox" id="stJournalEnabled" style="width:auto;" ${s.journalEnabled?'checked':''}> 啟用「工作日誌」功能
         </label>
         <div class="card-hint" style="margin-bottom:10px;">啟用後會出現「工作日誌」分頁，可以自己決定要不要用，記錄每天處理過的案件/事項，僅自己看得到。</div>
+        <div class="card-hint" style="margin-bottom:10px; border-top:1px dashed var(--card-line); padding-top:10px;">使用者編號（設定管理者時使用）：<span style="font-family:monospace; word-break:break-all;">${escapeHtml(currentUid||'')}</span></div>
         <div class="modal-actions">
           <button class="btn ghost" id="stCancel">取消</button>
           <button class="btn" id="stSave">儲存</button>
@@ -1655,8 +1739,9 @@ function bindJournalModal(){
 }
 
 function logout(){
-  localStorage.removeItem(LOCAL_KEY);
-  currentDocId = null; currentUserCode = null; state = null;
+  clearTimeout(saveTimer);
+  auth.signOut().catch(()=>{});
+  currentUid = null; currentUserCode = null; state = null;
   undoStack = []; pendingSnapshot = true;
   document.getElementById('userInfo').innerHTML = '';
   updateUndoButton();
@@ -1698,66 +1783,58 @@ function bindChangeCredModal(){
   document.getElementById('changeCredOverlay') && document.getElementById('changeCredOverlay').addEventListener('click', (e)=>{
     if(e.target.id === 'changeCredOverlay') closeChangeCredModal();
   });
+  const showError = (msg)=>{
+    document.getElementById('credModalArea').innerHTML = changeCredModalHtml(msg);
+    bindChangeCredModal();
+  };
   document.getElementById('ccSubmit') && document.getElementById('ccSubmit').addEventListener('click', async ()=>{
     const oldCode = (document.getElementById('ccOldCode').value||'').trim();
     const oldPw = (document.getElementById('ccOldPassword').value||'').trim();
     const newCode = (document.getElementById('ccNewCode').value||'').trim();
     const newPw = (document.getElementById('ccNewPassword').value||'').trim();
     const newPw2 = (document.getElementById('ccNewPassword2').value||'').trim();
-    if(!oldCode || !oldPw || !newCode || !newPw || !newPw2){
-      document.getElementById('credModalArea').innerHTML = changeCredModalHtml('請完整填寫所有欄位');
-      bindChangeCredModal();
-      return;
-    }
-    if(newPw !== newPw2){
-      document.getElementById('credModalArea').innerHTML = changeCredModalHtml('兩次輸入的新密碼不一致');
-      bindChangeCredModal();
-      return;
-    }
-    const oldCheckId = await sha256Hex(oldCode + '::' + oldPw);
-    if(oldCheckId !== currentDocId){
-      document.getElementById('credModalArea').innerHTML = changeCredModalHtml('原本代號或密碼錯誤，無法更換');
-      bindChangeCredModal();
-      return;
-    }
-    const newDocId = await sha256Hex(newCode + '::' + newPw);
-    if(newDocId === currentDocId){
-      document.getElementById('credModalArea').innerHTML = changeCredModalHtml('新的代號密碼組合跟原本相同，請換一組');
-      bindChangeCredModal();
-      return;
-    }
+    if(!oldCode || !oldPw || !newCode || !newPw || !newPw2){ showError('請完整填寫所有欄位'); return; }
+    if(newPw !== newPw2){ showError('兩次輸入的新密碼不一致'); return; }
+    if(newCode === oldCode && newPw === oldPw){ showError('新的代號密碼組合跟原本相同，請換一組'); return; }
+    const submitBtn = document.getElementById('ccSubmit');
+    submitBtn.disabled = true; submitBtn.textContent = '處理中…';
     try{
-      const snap = await db.ref('users/' + newDocId).once('value');
-      if(snap.exists()){
-        document.getElementById('credModalArea').innerHTML = changeCredModalHtml('這組新代號密碼已經被使用，請換一組');
-        bindChangeCredModal();
+      const oldC = await reauthCurrentUser(oldCode, oldPw);
+      if(!oldC){ showError('原本代號或密碼錯誤，無法更換'); return; }
+      const newC = await authCredsFor(newCode, newPw);
+      // 只換密碼：直接改登入密碼，資料位置不變
+      if(newCode === oldCode){
+        await auth.currentUser.updatePassword(newC.password);
+        closeChangeCredModal();
         return;
       }
-      if(newCode !== oldCode){
-        const taken = await isCodeTaken(newCode);
-        if(taken){
-          document.getElementById('credModalArea').innerHTML = changeCredModalHtml('這個新代號已經有人使用，請換一個代號');
-          bindChangeCredModal();
-          return;
+      // 換代號：建立新代號的帳號 → 複製資料 → 刪除舊帳號 → 用新帳號登入
+      if(await isCodeRegistered(newC.codeKey)){ showError('這個新代號已經有人使用，請換一個代號'); return; }
+      const app2 = firebase.apps.find(a=>a.name==='credChange') || firebase.initializeApp(firebaseConfig, 'credChange');
+      try{
+        let cred2;
+        try{
+          cred2 = await app2.auth().createUserWithEmailAndPassword(newC.email, newC.password);
+        }catch(e){
+          if(e.code === 'auth/email-already-in-use'){ showError('這個新代號已經有人使用，請換一個代號'); return; }
+          throw e;
         }
+        await cred2.user.updateProfile({ displayName: newCode });
+        await app2.database().ref('data/' + cred2.user.uid).set({ state: JSON.stringify(state), updatedAt: firebase.database.ServerValue.TIMESTAMP });
+        await app2.database().ref('codes/' + newC.codeKey).set({ code: newCode, uid: cred2.user.uid, updatedAt: firebase.database.ServerValue.TIMESTAMP });
+      }finally{
+        await app2.auth().signOut().catch(()=>{});
       }
-      await db.ref('users/' + newDocId).set({
-        state: JSON.stringify(state),
-        updatedAt: firebase.database.ServerValue.TIMESTAMP
-      });
-      await db.ref('users/' + currentDocId).remove();
-      if(newCode !== oldCode){
-        await unregisterCode(oldCode);
-      }
-      await registerCode(newCode, newDocId);
-      currentDocId = newDocId;
-      currentUserCode = newCode;
-      localStorage.setItem(LOCAL_KEY, JSON.stringify({docId:newDocId, code:newCode}));
-      renderUserInfoBar(newCode);
+      clearTimeout(saveTimer);
+      const oldUser = auth.currentUser;
+      await db.ref('data/' + oldUser.uid).remove();
+      await db.ref('codes/' + oldC.codeKey).remove();
+      await oldUser.delete();
+      await auth.signInWithEmailAndPassword(newC.email, newC.password);
       closeChangeCredModal();
+      await enterSession(auth.currentUser, newCode);
     }catch(e){
-      document.getElementById('credModalArea').innerHTML = changeCredModalHtml('更換失敗，請確認網路連線後重試');
-      bindChangeCredModal();
+      showError('更換失敗（' + authErrorText(e) + '），請重試');
     }
   });
 }
@@ -1798,52 +1875,45 @@ function bindDeleteAccountModal(){
   document.getElementById('deleteAccountOverlay') && document.getElementById('deleteAccountOverlay').addEventListener('click', (e)=>{
     if(e.target.id === 'deleteAccountOverlay') closeDeleteAccountModal();
   });
+  const showError = (msg)=>{
+    document.getElementById('credModalArea').innerHTML = deleteAccountModalHtml(msg);
+    bindDeleteAccountModal();
+  };
   document.getElementById('daSubmit') && document.getElementById('daSubmit').addEventListener('click', async ()=>{
     const code = (document.getElementById('daCode').value||'').trim();
     const pw = (document.getElementById('daPassword').value||'').trim();
     const checked = document.getElementById('daConfirmCheck').checked;
-    if(!code || !pw){
-      document.getElementById('credModalArea').innerHTML = deleteAccountModalHtml('請輸入代號與密碼');
-      bindDeleteAccountModal();
-      return;
-    }
-    if(!checked){
-      document.getElementById('credModalArea').innerHTML = deleteAccountModalHtml('請勾選確認了解此操作無法復原');
-      bindDeleteAccountModal();
-      return;
-    }
-    const checkId = await sha256Hex(code + '::' + pw);
-    if(checkId !== currentDocId){
-      document.getElementById('credModalArea').innerHTML = deleteAccountModalHtml('代號或密碼錯誤，無法刪除');
-      bindDeleteAccountModal();
-      return;
-    }
+    if(!code || !pw){ showError('請輸入代號與密碼'); return; }
+    if(!checked){ showError('請勾選確認了解此操作無法復原'); return; }
     try{
-      await db.ref('users/' + currentDocId).remove();
-      await unregisterCode(currentUserCode);
+      const c = await reauthCurrentUser(code, pw);
+      if(!c){ showError('代號或密碼錯誤，無法刪除'); return; }
+      clearTimeout(saveTimer);
+      const user = auth.currentUser;
+      await db.ref('data/' + user.uid).remove();
+      await db.ref('codes/' + c.codeKey).remove();
+      await user.delete();
       closeDeleteAccountModal();
-      localStorage.removeItem(LOCAL_KEY);
-      currentDocId = null; currentUserCode = null; state = null;
+      currentUid = null; currentUserCode = null; state = null;
       undoStack = []; pendingSnapshot = true;
       document.getElementById('userInfo').innerHTML = '';
       updateUndoButton();
       renderLoginScreen('此代號的資料已永久刪除');
     }catch(e){
-      document.getElementById('credModalArea').innerHTML = deleteAccountModalHtml('刪除失敗，請確認網路連線後重試');
-      bindDeleteAccountModal();
+      showError('刪除失敗（' + authErrorText(e) + '），請重試');
     }
   });
 }
 
 /* ============ 儲存 / 載入 ============ */
 async function tryAutoLogin(){
-  try{
-    const saved = JSON.parse(localStorage.getItem(LOCAL_KEY) || 'null');
-    if(saved && saved.docId && saved.code){
-      await enterWithDocId(saved.docId, saved.code);
-      return;
-    }
-  }catch(e){ /* 忽略，改走登入畫面 */ }
+  // 清掉舊版記在瀏覽器裡的文件編號（新版改由 Firebase 登入狀態記住）
+  try{ localStorage.removeItem(LOCAL_KEY); }catch(e){}
+  const user = await waitForAuthReady();
+  if(user){
+    await enterSession(user);
+    return;
+  }
   renderLoginScreen();
 }
 
@@ -1853,9 +1923,9 @@ function scheduleSave(immediate){
   bar.classList.add('saving'); txt.textContent = "儲存中…";
   clearTimeout(saveTimer);
   const doSave = async () => {
-    if(!currentDocId) return;
+    if(!currentUid) return;
     try{
-      await db.ref('users/' + currentDocId).set({
+      await db.ref('data/' + currentUid).set({
         state: JSON.stringify(state),
         updatedAt: firebase.database.ServerValue.TIMESTAMP
       });
@@ -4161,11 +4231,8 @@ document.addEventListener('keydown', (e)=>{
 /* ============ 啟動 ============ */
 (async function init(){
   document.getElementById('cardArea').innerHTML = `<div class="empty">載入中…</div>`;
-  if(location.hash === '#admin'){
-    renderAdminLogin();
-    return;
-  }
   await tryAutoLogin();
+  if(location.hash === '#admin' && auth.currentUser) await renderAdminEntry();
 })();
 </script>
 </body>
